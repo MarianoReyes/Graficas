@@ -16,59 +16,6 @@ class Render(object):
         self.width = width
         self.height = height
         self.texture = None
-        self.trianguloarray = []
-        self.luz = V3(0, 0, -1)
-        self.Model = None
-        self.Vista = None
-
-    def lookAt(self, eye, center, up):
-        z = (eye - center).norm()
-        x = up.cross(up, z).norm()
-        y = up.cross(z, x).norm()
-
-        self.Vista = MM()
-
-    def loadModelMatriz(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
-        translate = V3(*translate)
-        scale = V3(*scale)
-        rotate = V3(*rotate)
-
-        translateM = MM([
-            [1, 0, 0, translate.x],
-            [0, 1, 0, translate.y],
-            [0, 0, 1, translate.z],
-            [0, 0, 0, 1]
-        ])
-
-        scaleM = MM([
-            [scale.x,      0,      0, 0],
-            [0, scale.y,      0, 0],
-            [0,      0, scale.z, 0],
-            [0,      0,      0, 1]
-        ])
-        a = rotate.x
-        rotacionx = MM([
-            [1,     0,           0, 0],
-            [0, cos(a),    -sin(a), 0],
-            [0, sin(a),     cos(a), 0],
-            [0,     0,          0,  1]
-        ])
-        a = rotate.y
-        rotaciony = MM([
-            [cos(a),     0,    sin(a), 0],
-            [0,     1,         0, 0],
-            [-sin(a),     0,    cos(a), 0],
-            [0,     0,         0, 1]
-        ])
-        a = rotate.z
-        rotacionz = MM([
-            [cos(a), -sin(a),    0, 0],
-            [sin(a), cos(a),    0, 0],
-            [0,      0,    1, 0],
-            [0,      0,    0, 1]
-        ])
-        rotacionM = rotacionx * rotaciony * rotacionz
-        self.Model = translateM * rotacionM * scaleM
 
     def vertexConvert(self, x, y):
         return [round(self.xVp+(x+1)*0.5*self.widthVp-1), round(self.yVp+(y+1)*0.5*self.heightVp-1)]
@@ -215,6 +162,48 @@ class Render(object):
         w = 1 - (cx + cy)/cz
         return (w, v, u)
 
+    def loadModelMatriz(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
+        translate = V3(*translate)
+        scale = V3(*scale)
+        rotate = V3(*rotate)
+
+        translateM = MM([
+            [1, 0, 0, translate.x],
+            [0, 1, 0, translate.y],
+            [0, 0, 1, translate.z],
+            [0, 0, 0, 1]
+        ])
+
+        scaleM = MM([
+            [scale.x,      0,      0, 0],
+            [0, scale.y,      0, 0],
+            [0,      0, scale.z, 0],
+            [0,      0,      0, 1]
+        ])
+        a = rotate.x
+        rotacionx = MM([
+            [1,     0,           0, 0],
+            [0, cos(a),    -sin(a), 0],
+            [0, sin(a),     cos(a), 0],
+            [0,     0,          0,  1]
+        ])
+        a = rotate.y
+        rotaciony = MM([
+            [cos(a),     0,    sin(a), 0],
+            [0,     1,         0, 0],
+            [-sin(a),     0,    cos(a), 0],
+            [0,     0,         0, 1]
+        ])
+        a = rotate.z
+        rotacionz = MM([
+            [cos(a), -sin(a),    0, 0],
+            [sin(a), cos(a),    0, 0],
+            [0,      0,    1, 0],
+            [0,      0,    0, 1]
+        ])
+        rotacionM = rotacionx * rotaciony * rotacionz
+        self.Model = translateM * rotacionM * scaleM
+
     def triangle(self, Vertices, Tvertices=None):
 
         if self.texture:
@@ -293,104 +282,88 @@ class Render(object):
                 y += 1 if y0 < y1 else -1
                 threshold += dx*2
 
-    def transform_vertex(self, vertex):
-
-        vertex_aumentado = MM([[vertex[0]], [vertex[1]], [vertex[2]], [1]])
-        transformed_vertex = self.Model * vertex_aumentado
-
+    def transform_vertex(self, vertex, scale, translate):
+        if len(vertex) == 2:
+            vertex.append(0)
         return V3(
-            transformed_vertex.matriz[0][0]/transformed_vertex.matriz[3][0],
-            transformed_vertex.matriz[1][0]/transformed_vertex.matriz[3][0],
-            transformed_vertex.matriz[2][0]/transformed_vertex.matriz[3][0]
-
+            round(vertex[0] * scale[0] + translate[0]),
+            round(vertex[1] * scale[1] + translate[1]),
+            round(vertex[2] * scale[2] + translate[2])
         )
 
-    def generar_3d(self, nombre, color):
-        figura = Obj(nombre)
+    def generar_3d(self, nombre, scale_factor, translate_factor, color):
+        model = Obj(nombre)
 
-        for face in figura.caras:
+        for face in model.caras:
             face.pop()
+
             self.color_pixel(*color)
+
+            if len(face) == 3:
+
+                f1 = face[0][0] - 1
+                f2 = face[1][0] - 1
+                f3 = face[2][0] - 1
+
+                v1 = self.transform_vertex(
+                    model.vertices[face[0][0] - 1], scale_factor, translate_factor)
+                v2 = self.transform_vertex(
+                    model.vertices[face[1][0] - 1], scale_factor, translate_factor)
+                v3 = self.transform_vertex(
+                    model.vertices[face[2][0] - 1], scale_factor, translate_factor)
+
+                if self.texture and len(model.tvertices) != 0:
+
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
+
+                    vt1 = V3(*model.tvertices[ft1])
+                    vt2 = V3(*model.tvertices[ft2])
+                    vt3 = V3(*model.tvertices[ft3])
+
+                    self.triangle((v1, v2, v3), (vt1, vt2, vt3))
+
+                else:
+                    self.triangle((v1, v2, v3))
+
             if len(face) == 4:
+
+                # assuming 4
                 f1 = face[0][0] - 1
                 f2 = face[1][0] - 1
                 f3 = face[2][0] - 1
                 f4 = face[3][0] - 1
 
-                v1 = self.transform_vertex(figura.vertices[f1])
-                v2 = self.transform_vertex(figura.vertices[f2])
-                v3 = self.transform_vertex(figura.vertices[f3])
-                v4 = self.transform_vertex(figura.vertices[f4])
+                vertices = [
+                    self.transform_vertex(
+                        model.vertices[f1], scale_factor, translate_factor),
+                    self.transform_vertex(
+                        model.vertices[f2], scale_factor, translate_factor),
+                    self.transform_vertex(
+                        model.vertices[f3], scale_factor, translate_factor),
+                    self.transform_vertex(
+                        model.vertices[f4], scale_factor, translate_factor)
+                ]
 
-                ft1 = face[0][1] - 1
-                ft2 = face[1][1] - 1
-                ft3 = face[2][1] - 1
-                ft4 = face[3][1] - 1
-                # Si truena
-                try:
-                    vt1 = V3(*figura.tvertices[ft1])
-                    vt2 = V3(*figura.tvertices[ft2])
-                    vt3 = V3(*figura.tvertices[ft3])
-                    vt4 = V3(*figura.tvertices[ft4])
-                except:
-                    vt1 = 0
-                    vt2 = 0
-                    vt3 = 0
-                    vt4 = 0
+                if self.texture and len(model.tvertices) != 0:
 
-                # self.trianguloarray.extend(v1,v2,v3,vt1,vt2,vt3)
-                self.trianguloarray.append(v1)
-                self.trianguloarray.append(v2)
-                self.trianguloarray.append(v3)
-                self.trianguloarray.append(vt1)
-                self.trianguloarray.append(vt2)
-                self.trianguloarray.append(vt3)
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
+                    ft4 = face[3][1] - 1
 
-                # self.triangulo()
-                # self.trianguloarray.extend(v1,v3,v4,vt1,vt3,vt4)
-                self.trianguloarray.append(v1)
-                self.trianguloarray.append(v3)
-                self.trianguloarray.append(v4)
-                self.trianguloarray.append(vt1)
-                self.trianguloarray.append(vt3)
-                self.trianguloarray.append(vt4)
-                # self.triangulo()
+                    vt1 = V3(*model.tvertices[ft1])
+                    vt2 = V3(*model.tvertices[ft2])
+                    vt3 = V3(*model.tvertices[ft3])
+                    vt4 = V3(*model.tvertices[ft4])
 
-            if len(face) == 3:
-                f1 = face[0][0] - 1
-                f2 = face[1][0] - 1
-                f3 = face[2][0] - 1
+                    A, B, C, D = vertices
+                    self.triangle((A, B, C), (vt1, vt2, vt3))
+                    self.triangle((A, C, D), (vt1, vt3, vt4))
 
-                v1 = self.transform_vertex(figura.vertices[f1])
-                v2 = self.transform_vertex(figura.vertices[f2])
-                v3 = self.transform_vertex(figura.vertices[f3])
+                else:
+                    A, B, C, D = vertices
 
-                ft1 = face[0][1] - 1
-                ft2 = face[1][1] - 1
-                ft3 = face[2][1] - 1
-
-                try:
-                    vt1 = V3(*figura.tvertices[ft1])
-                    vt2 = V3(*figura.tvertices[ft2])
-                    vt3 = V3(*figura.tvertices[ft3])
-                except:
-                    vt1 = 0
-                    vt2 = 0
-                    vt3 = 0
-
-                self.trianguloarray.append(v1)
-                self.trianguloarray.append(v2)
-                self.trianguloarray.append(v3)
-                self.trianguloarray.append(vt1)
-                self.trianguloarray.append(vt2)
-                self.trianguloarray.append(vt3)
-                # self.triangulo()
-        self.draw()
-
-    def draw(self):
-        self.trianguloarray = iter(self.trianguloarray)
-        try:
-            while True:
-                self.triangle()
-        except:
-            StopIteration
+                    self.triangle((A, B, C))
+                    self.triangle((A, C, D))
