@@ -1,4 +1,5 @@
 from render import Render
+from math import *
 
 r = Render()
 
@@ -15,7 +16,8 @@ scale_factor = (2, 2, 2)
 translate_factor = (500, 500, 500)
 
 #r.generar_3d('models/face', scale_factor, translate_factor, color)
-
-r.generar_3d('models/Dice.obj', scale_factor, translate_factor, color)
+rotate = (0, -pi/3, 0)
+r.loadModelMatriz(translate_factor, scale_factor, rotate)
+r.generar_3d('models/Dice.obj', color)
 
 r.write('dado.bmp')
