@@ -1,3 +1,6 @@
+from matriz import MM
+
+
 class V3(object):
     # creacion del vector en 3D
     def __init__(self, x, y, z=0):
@@ -62,6 +65,10 @@ class V3(object):
         if self.length() == 0:
             return V3(0, 0, 0)
         return self * (1/self.length())
+
+    # coversion de matrizes
+    def convert(self):
+        return MM([self.x, self.y, self.z])
 
     # print bonito
     def __repr__(self):

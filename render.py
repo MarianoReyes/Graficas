@@ -3,6 +3,8 @@ from writeutilities import *
 from color import *
 from vector import V3
 from textures import *
+from math import *
+from matriz import MM
 
 
 class Render(object):
@@ -160,6 +162,48 @@ class Render(object):
         w = 1 - (cx + cy)/cz
         return (w, v, u)
 
+    def loadModelMatriz(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
+        translate = V3(*translate)
+        scale = V3(*scale)
+        rotate = V3(*rotate)
+
+        translateM = MM([
+            [1, 0, 0, translate.x],
+            [0, 1, 0, translate.y],
+            [0, 0, 1, translate.z],
+            [0, 0, 0, 1]
+        ])
+
+        scaleM = MM([
+            [scale.x,      0,      0, 0],
+            [0, scale.y,      0, 0],
+            [0,      0, scale.z, 0],
+            [0,      0,      0, 1]
+        ])
+        a = rotate.x
+        rotacionx = MM([
+            [1,     0,           0, 0],
+            [0, cos(a),    -sin(a), 0],
+            [0, sin(a),     cos(a), 0],
+            [0,     0,          0,  1]
+        ])
+        a = rotate.y
+        rotaciony = MM([
+            [cos(a),     0,    sin(a), 0],
+            [0,     1,         0, 0],
+            [-sin(a),     0,    cos(a), 0],
+            [0,     0,         0, 1]
+        ])
+        a = rotate.z
+        rotacionz = MM([
+            [cos(a), -sin(a),    0, 0],
+            [sin(a), cos(a),    0, 0],
+            [0,      0,    1, 0],
+            [0,      0,    0, 1]
+        ])
+        rotacionM = rotacionx * rotaciony * rotacionz
+        self.Model = translateM * rotacionM * scaleM
+
     def triangle(self, Vertices, Tvertices=None):
 
         if self.texture:
@@ -229,15 +273,9 @@ class Render(object):
         for x in range(x0, x1+1):
             if steep:
                 self.point(y, x)
-                # self.point(y,x+1)
-                # self.point(y-1,x)
-                # self.point(y-1,x+1)
 
             else:
                 self.point(x, y)
-                # self.point(x+1,y)
-                # self.point(x,y-1)
-                # self.point(x+1,y-1)
 
             offset += dy*2
             if offset >= threshold:
@@ -276,9 +314,9 @@ class Render(object):
 
                 if self.texture and len(model.tvertices) != 0:
 
-                    ft1 = f[0][1] - 1
-                    ft2 = f[1][1] - 1
-                    ft3 = f[2][1] - 1
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
 
                     vt1 = V3(*model.tvertices[ft1])
                     vt2 = V3(*model.tvertices[ft2])
