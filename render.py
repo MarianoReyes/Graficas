@@ -4,7 +4,7 @@ from color import *
 from vector import V3
 from textures import *
 from math import *
-from matriz import MM
+from matriz import MatrizO
 
 
 class Render(object):
@@ -16,6 +16,11 @@ class Render(object):
         self.width = width
         self.height = height
         self.texture = None
+        self.light = V3(0, 0, -1)
+        self.Model = []
+        self.View = []
+        self.ViewPort = []
+        self.Projection = []
 
     def vertexConvert(self, x, y):
         return [round(self.xVp+(x+1)*0.5*self.widthVp-1), round(self.yVp+(y+1)*0.5*self.heightVp-1)]
@@ -167,35 +172,35 @@ class Render(object):
         scale = V3(*scale)
         rotate = V3(*rotate)
 
-        translateM = MM([
+        translateM = MatrizO([
             [1, 0, 0, translate.x],
             [0, 1, 0, translate.y],
             [0, 0, 1, translate.z],
             [0, 0, 0, 1]
         ])
 
-        scaleM = MM([
+        scaleM = MatrizO([
             [scale.x,      0,      0, 0],
             [0, scale.y,      0, 0],
             [0,      0, scale.z, 0],
             [0,      0,      0, 1]
         ])
         a = rotate.x
-        rotacionx = MM([
+        rotacionx = MatrizO([
             [1,     0,           0, 0],
             [0, cos(a),    -sin(a), 0],
             [0, sin(a),     cos(a), 0],
             [0,     0,          0,  1]
         ])
         a = rotate.y
-        rotaciony = MM([
+        rotaciony = MatrizO([
             [cos(a),     0,    sin(a), 0],
             [0,     1,         0, 0],
             [-sin(a),     0,    cos(a), 0],
             [0,     0,         0, 1]
         ])
         a = rotate.z
-        rotacionz = MM([
+        rotacionz = MatrizO([
             [cos(a), -sin(a),    0, 0],
             [sin(a), cos(a),    0, 0],
             [0,      0,    1, 0],
@@ -204,12 +209,17 @@ class Render(object):
         rotacionM = rotacionx * rotaciony * rotacionz
         self.Model = translateM * rotacionM * scaleM
 
+    # lookAt
+    # loadViewMatrix
+    # loadProjectionMatrix
+    # loadViewport
+
     def triangle(self, Vertices, Tvertices=None):
 
         if self.texture:
             tA, tB, tC = Tvertices
         v1, v2, v3 = Vertices
-        L = V3(0, 0, -1)
+        L = self.light
         N = (v3-v1) * (v2-v1)
         i = N.norm() @ L.norm()
 
@@ -282,6 +292,7 @@ class Render(object):
                 y += 1 if y0 < y1 else -1
                 threshold += dx*2
 
+    # EDITAR ESTA
     def transform_vertex(self, vertex, scale, translate):
         if len(vertex) == 2:
             vertex.append(0)

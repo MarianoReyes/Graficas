@@ -8,7 +8,7 @@ r.backgroundcolor(1, 1, 1)
 r.clear()
 r.color_pixel(1, 1, 1)
 
-r.get_Texture('models/texturas/txt-dado-3.bmp')
+r.get_Texture('models/texturas/txt-dado-2.bmp')
 
 color = (0, 0, 0)
 scale_factor = (2, 2, 2)
