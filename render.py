@@ -362,8 +362,7 @@ class Render(object):
         print("modelo: ", type(self.Model))
         print("augmented: ", type(augmented_vertex))
 
-        transformed_vertex = self.Viewport * self.Projection * \
-            self.View * self.Model * augmented_vertex
+        transformed_vertex = self.Viewport * self.Projection * self.View * self.Model * augmented_vertex
 
         return V3(
             transformed_vertex.matriz[0][0]/transformed_vertex.matriz[3][0],
