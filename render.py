@@ -459,6 +459,8 @@ class Render(object):
                     self.trianguloarray.append(C)
                     self.trianguloarray.append(D)
 
+        self.draw()
+
     def draw(self):
         self.trianguloarray = iter(self.trianguloarray)
         try:
