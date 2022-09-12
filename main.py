@@ -18,4 +18,4 @@ translate_factor = (500, 500, 500)
 
 r.generar_3d('models/Dice.obj', scale_factor, translate_factor, color)
 
-r.write('dado.bmp')
+r.write('dado2.bmp')
