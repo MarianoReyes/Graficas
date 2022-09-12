@@ -1,4 +1,4 @@
-from matriz import MM
+from matriz import MatrizO
 
 
 class V3(object):
@@ -68,8 +68,16 @@ class V3(object):
 
     # coversion de matrizes
     def convert(self):
-        return MM([self.x, self.y, self.z])
+        return MatrizO([self.x, self.y, self.z])
 
     # print bonito
     def __repr__(self):
         return "V3(%s,%s,%s)" % (self.x, self.y, self.z)
+
+
+class V4(object):
+    def __init__(self, x, y, z=0, w=0):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.w = w

@@ -19,8 +19,9 @@ class Render(object):
         self.light = V3(0, 0, -1)
         self.Model = []
         self.View = []
-        self.ViewPort = []
+        self.Viewport = []
         self.Projection = []
+        self.trianguloarray = []
 
     def vertexConvert(self, x, y):
         return [round(self.xVp+(x+1)*0.5*self.widthVp-1), round(self.yVp+(y+1)*0.5*self.heightVp-1)]
@@ -167,52 +168,101 @@ class Render(object):
         w = 1 - (cx + cy)/cz
         return (w, v, u)
 
-    def loadModelMatriz(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
+    def loadModelMatriX(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
         translate = V3(*translate)
         scale = V3(*scale)
         rotate = V3(*rotate)
 
-        translateM = MatrizO([
+        translate_matrix = MatrizO([
             [1, 0, 0, translate.x],
             [0, 1, 0, translate.y],
             [0, 0, 1, translate.z],
             [0, 0, 0, 1]
         ])
 
-        scaleM = MatrizO([
-            [scale.x,      0,      0, 0],
-            [0, scale.y,      0, 0],
-            [0,      0, scale.z, 0],
-            [0,      0,      0, 1]
+        scale_matrix = MatrizO([
+            [scale.x, 0, 0, 0],
+            [0, scale.y, 0, 0],
+            [0, 0, scale.z, 0],
+            [0, 0, 0, 1]
         ])
         a = rotate.x
         rotacionx = MatrizO([
-            [1,     0,           0, 0],
-            [0, cos(a),    -sin(a), 0],
-            [0, sin(a),     cos(a), 0],
-            [0,     0,          0,  1]
+            [1, 0, 0, 0],
+            [0, cos(a), -sin(a), 0],
+            [0, sin(a), cos(a), 0],
+            [0, 0, 0, 1]
         ])
         a = rotate.y
         rotaciony = MatrizO([
-            [cos(a),     0,    sin(a), 0],
-            [0,     1,         0, 0],
-            [-sin(a),     0,    cos(a), 0],
-            [0,     0,         0, 1]
+            [cos(a), 0, sin(a), 0],
+            [0, 1, 0, 0],
+            [-sin(a), 0, cos(a), 0],
+            [0, 0, 0, 1]
         ])
         a = rotate.z
         rotacionz = MatrizO([
-            [cos(a), -sin(a),    0, 0],
-            [sin(a), cos(a),    0, 0],
-            [0,      0,    1, 0],
-            [0,      0,    0, 1]
+            [cos(a), -sin(a), 0, 0],
+            [sin(a), cos(a), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
         ])
-        rotacionM = rotacionx * rotaciony * rotacionz
-        self.Model = translateM * rotacionM * scaleM
 
-    # lookAt
-    # loadViewMatrix
-    # loadProjectionMatrix
-    # loadViewport
+        rotacionM = rotacionx * rotaciony * rotacionz
+        self.Model = translate_matrix * rotacionM * scale_matrix
+
+    def loadViewMatrix(self, x, y, z, center):
+
+        Mi = MatrizO([
+            [x.x, x.y, x.z, 0],
+            [y.x, y.y, y.z, 0],
+            [z.x, z.y, z.z, 0],
+            [0, 0, 0, 1],
+        ])
+
+        Op = MatrizO([
+            [1, 0, 0, -center.x],
+            [0, 1, 0, -center.y],
+            [0, 0, 1, -center.z],
+            [0, 0, 0, 1]
+        ])
+
+        self.View = Mi * Op
+
+    def loadProjectionViewMatrix(self, eyes, center):
+        coeff = -1/(eyes.length() - center.length())
+        self.Projection = MatrizO([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, coeff, 1]
+        ])
+
+    def loadViewportMatrix(self, width=0, height=0):
+        x = 0
+        y = 0
+        w = width if width != 0 else self.width/2
+        h = height if height != 0 else self.height/2
+
+        self.Viewport = MatrizO([
+            [w, 0, 0, x + w],
+            [0, h, 0, y + h],
+            [0, 0, 128,   128],
+            [0, 0, 0, 1]
+        ])
+
+    def lookAt(self, eyes, center, up):
+        eyes = V3(*eyes)
+        center = V3(*center)
+        up = V3(*up)
+
+        z = (eyes - center).norm()
+        x = (up * z).norm()
+        y = (z * x).norm()
+
+        self.loadViewMatrix(x, y, z, center)
+        self.loadProjectionViewMatrix(eyes, center)
+        self.loadViewportMatrix()
 
     def triangle(self, Vertices, Tvertices=None):
 
@@ -242,15 +292,21 @@ class Render(object):
                     continue
 
                 z = v1.z * w + v2.z * v + v3.z * u
-                if (self.zBuffer[x][y] < z):
-                    self.zBuffer[x][y] = z
 
-                    if self.texture:
+                try:
+                    if (x > 0 and y > 0 and x < len(self.zBuffer) and y < len(self.zBuffer[0]) and self.zBuffer[x][y] <= z):
+                        self.zBuffer[x][y] = z
+
+                    if self.texture and Tvertices != [0, 0, 0]:
                         tx = tA.x * w + tB.x * u + tC.x * v
                         ty = tA.y * w + tB.y * u + tC.y * v
-                        self.pcolor = self.texture.intensity(tx, ty, i)
-                    # if self.pcolor:
-                    self.point(x, y)
+
+                        self.current_color = self.texture.intensity(
+                            tx, ty, i)
+
+                    self.point(y, x)
+                except:
+                    continue
         pass
 
     def clamp(self, val):
@@ -292,23 +348,27 @@ class Render(object):
                 y += 1 if y0 < y1 else -1
                 threshold += dx*2
 
-    # EDITAR ESTA
-    def transform_vertex(self, vertex, scale, translate):
-        if len(vertex) == 2:
-            vertex.append(0)
+    def transform_vertex(self, vertex):
+        augmented_vertex = MatrizO(
+            [[vertex[0]], [vertex[1]], [vertex[2]], [1]])
+        transformed_vertex = (
+            self.Viewport * self.Projection * self.View * self.Model * augmented_vertex)
+
         return V3(
-            round(vertex[0] * scale[0] + translate[0]),
-            round(vertex[1] * scale[1] + translate[1]),
-            round(vertex[2] * scale[2] + translate[2])
+            transformed_vertex.matriz[0][0]/transformed_vertex.matriz[3][0],
+            transformed_vertex.matriz[1][0]/transformed_vertex.matriz[3][0],
+            transformed_vertex.matriz[2][0]/transformed_vertex.matriz[3][0]
+
         )
 
-    def generar_3d(self, nombre, scale_factor, translate_factor, color):
+    def generar_3d(self, nombre, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
         model = Obj(nombre)
+        self.loadModelMatriX(translate, scale, rotate)
 
         for face in model.caras:
             face.pop()
 
-            self.color_pixel(*color)
+            self.color_pixel(*(0, 0, 0))
 
             if len(face) == 3:
 
@@ -316,12 +376,9 @@ class Render(object):
                 f2 = face[1][0] - 1
                 f3 = face[2][0] - 1
 
-                v1 = self.transform_vertex(
-                    model.vertices[face[0][0] - 1], scale_factor, translate_factor)
-                v2 = self.transform_vertex(
-                    model.vertices[face[1][0] - 1], scale_factor, translate_factor)
-                v3 = self.transform_vertex(
-                    model.vertices[face[2][0] - 1], scale_factor, translate_factor)
+                v1 = self.transform_vertex(model.vertices[f1])
+                v2 = self.transform_vertex(model.vertices[f2])
+                v3 = self.transform_vertex(model.vertices[f3])
 
                 if self.texture and len(model.tvertices) != 0:
 
@@ -333,10 +390,16 @@ class Render(object):
                     vt2 = V3(*model.tvertices[ft2])
                     vt3 = V3(*model.tvertices[ft3])
 
-                    self.triangle((v1, v2, v3), (vt1, vt2, vt3))
-
+                    self.trianguloarray.append(v1)
+                    self.trianguloarray.append(v2)
+                    self.trianguloarray.append(v3)
+                    self.trianguloarray.append(vt1)
+                    self.trianguloarray.append(vt2)
+                    self.trianguloarray.append(vt3)
                 else:
-                    self.triangle((v1, v2, v3))
+                    self.trianguloarray.append(v1)
+                    self.trianguloarray.append(v2)
+                    self.trianguloarray.append(v3)
 
             if len(face) == 4:
 
@@ -348,13 +411,13 @@ class Render(object):
 
                 vertices = [
                     self.transform_vertex(
-                        model.vertices[f1], scale_factor, translate_factor),
+                        model.vertices[f1]),
                     self.transform_vertex(
-                        model.vertices[f2], scale_factor, translate_factor),
+                        model.vertices[f2]),
                     self.transform_vertex(
-                        model.vertices[f3], scale_factor, translate_factor),
+                        model.vertices[f3]),
                     self.transform_vertex(
-                        model.vertices[f4], scale_factor, translate_factor)
+                        model.vertices[f4])
                 ]
 
                 if self.texture and len(model.tvertices) != 0:
@@ -370,11 +433,36 @@ class Render(object):
                     vt4 = V3(*model.tvertices[ft4])
 
                     A, B, C, D = vertices
-                    self.triangle((A, B, C), (vt1, vt2, vt3))
-                    self.triangle((A, C, D), (vt1, vt3, vt4))
+
+                    self.trianguloarray.append(A)
+                    self.trianguloarray.append(B)
+                    self.trianguloarray.append(C)
+                    self.trianguloarray.append(vt1)
+                    self.trianguloarray.append(vt2)
+                    self.trianguloarray.append(vt3)
+
+                    self.trianguloarray.append(A)
+                    self.trianguloarray.append(C)
+                    self.trianguloarray.append(D)
+                    self.trianguloarray.append(vt1)
+                    self.trianguloarray.append(vt3)
+                    self.trianguloarray.append(vt4)
 
                 else:
                     A, B, C, D = vertices
 
-                    self.triangle((A, B, C))
-                    self.triangle((A, C, D))
+                    self.trianguloarray.append(A)
+                    self.trianguloarray.append(B)
+                    self.trianguloarray.append(C)
+
+                    self.trianguloarray.append(A)
+                    self.trianguloarray.append(C)
+                    self.trianguloarray.append(D)
+
+    def draw(self):
+        self.trianguloarray = iter(self.trianguloarray)
+        try:
+            while True:
+                self.triangle()
+        except:
+            StopIteration

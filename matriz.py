@@ -2,42 +2,43 @@ class MatrizO(object):
     def __init__(self, matriz):
         self.matriz = matriz
 
-    def __mul__(self, other):
-
-        selfy = len(self.matriz)
-        othery = len(other.matriz)
-        otherx = len(other.matriz[0])
-
-        Multiplicacion = []
-
-        for i in range(selfy):
-            Multiplicacion.append([])
-            for j in range(otherx):
-                Multiplicacion[i].append([])
-                temp = 0
-                for k in range(othery):
-                    temp += self.matriz[i][k]*other.matriz[k][j]
-                Multiplicacion[i][j] = temp
-        return MatrizO(Multiplicacion)
-
     def __add__(self, other):
         try:
-            suma = [[0 for y in range(len(self.matriz))]
-                    for x in range(len(self.matriz))]
             for y in range(len(self.matriz)):
-                for x in range(len(self.matriz[0])):
-                    suma[y][x] = self.matriz[y][x]+other.matriz[y][x]
+                for x in range(len(self.matriz[y])):
+                    self.matriz[x][y] += other.matriz[x][y]
+            return self.matriz
 
-            return MatrizO(suma)
         except:
-            print("ERROR SUMA INVALIDAD")
+            print('Error en la suma')
 
-    def __repr__(self):
-        a = ""
-        for y in range(len(self.matriz)):
-            a += "["
-            for x in range(len(self.matriz[0])):
-                a += str(self.matriz[y][x])+","
-            a = a[0:len(a)-1]
-            a += "]\n"
-        return a
+    def __sub__(self, other):
+        try:
+            for y in range(len(self.matriz)):
+                for x in range(len(self.matriz[y])):
+                    self.matriz[x][y] -= other.matriz[x][y]
+            return self.matriz
+
+        except:
+            print('Error en la suma')
+
+    def __mul__(self, other):
+        from vector import V4
+        try:
+
+            if(type(other) == V4):
+                other = MatrizO([[other.x], [other.y], [other.z], [other.w]])
+
+            resultado = []
+            for i in range(len(self.matriz)):
+                resultado.append([])
+                for j in range(len(other.matriz[0])):
+                    resultado[i].append([])
+                    temp = 0
+                    for k in range(len(other.matriz)):
+                        temp += self.matriz[i][k] * other.matriz[k][j]
+                    resultado[i][j] = temp
+            return MatrizO(resultado)
+
+        except:
+            print('Error en la multiplicación')
