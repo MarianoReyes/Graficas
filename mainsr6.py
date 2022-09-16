@@ -13,7 +13,7 @@ r.get_Texture('models/texturas/txt-dado-2.bmp')
 color = (0, 0, 0)
 
 translate_factor = (0.3, 0, -0.1)
-scale_factor = (1, 1, 1)
+scale_factor = (100, 100, 100)
 rotate = (0, 0, 0)
 r.loadModelMatriX(translate_factor, scale_factor, rotate)
 # toma medium

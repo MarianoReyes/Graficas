@@ -357,7 +357,10 @@ class Render(object):
         augmented_vertex = MatrizO(
             [[vertex[0]], [vertex[1]], [vertex[2]], [1]])
 
-        transformed_vertex = self.Viewport * self.Projection * self.View * self.Model * augmented_vertex
+        if self.ViewPort and self.Projection and self.View:
+            transformed_vertex = (self.Viewport * self.Projection * self.View * self.Model * augmented_vertex)
+        else:
+            transformed_vertex = self.Model * augmented_vertex
 
         return V3(
             transformed_vertex.matriz[0][0]/transformed_vertex.matriz[3][0],
@@ -401,14 +404,10 @@ class Render(object):
                     self.trianguloarray.append(vt2)
                     self.trianguloarray.append(vt3)
 
-                    print(v1, v2, v3)
-                    print(vt1, vt2, vt3)
                 else:
                     self.trianguloarray.append(v1)
                     self.trianguloarray.append(v2)
                     self.trianguloarray.append(v3)
-
-                    print(v1, v2, v3)
 
             if len(face) == 4:
 
@@ -457,12 +456,6 @@ class Render(object):
                     self.trianguloarray.append(vt3)
                     self.trianguloarray.append(vt4)
 
-                    print(A, B, C)
-                    print(vt1, vt2, vt3)
-
-                    print(A, C, D)
-                    print(vt1, vt3, vt4)
-
                 else:
                     A, B, C, D = vertices
 
@@ -473,9 +466,6 @@ class Render(object):
                     self.trianguloarray.append(A)
                     self.trianguloarray.append(C)
                     self.trianguloarray.append(D)
-
-                    print(A, B, C)
-                    print(vt1, vt2, vt3)
         '''
         for face in model.caras:
             if len(face) == 4:
