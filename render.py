@@ -356,11 +356,6 @@ class Render(object):
     def transform_vertex(self, vertex):
         augmented_vertex = MatrizO(
             [[vertex[0]], [vertex[1]], [vertex[2]], [1]])
-        print("viewport: ", type(self.ViewPort))
-        print("projection: ", type(self.Projection))
-        print("view: ", type(self.View))
-        print("modelo: ", type(self.Model))
-        print("augmented: ", type(augmented_vertex))
 
         transformed_vertex = self.Viewport * self.Projection * self.View * self.Model * augmented_vertex
 
