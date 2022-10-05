@@ -1,5 +1,6 @@
 import struct
 from color import *
+from Obj import Obj
 
 
 class Texture:
@@ -27,7 +28,7 @@ class Texture:
                     g = ord(image.read(1))
                     r = ord(image.read(1))
 
-                    self.pixels[y].append(color(r, g, b))
+                    self.pixels[y].append(rgbcolor(r, g, b))
 
     def get_color(self, tx, ty):
         x = round(tx*self.width)
@@ -47,4 +48,4 @@ class Texture:
         g = max(0, min(g, 255))
         r = max(0, min(r, 255))
 
-        return color(b, g, r)
+        return rgbcolor(b, g, r)

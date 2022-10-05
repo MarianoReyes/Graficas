@@ -1,3 +1,3 @@
-# Graficas 
+# Graficas SR
+
 ## José Mariano Reyes
-- Para correrlo solo es el archivo main.py

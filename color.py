@@ -1,4 +1,5 @@
-def color(r, g, b):
+
+def rgbcolor(r, g, b):
     return bytes([b, g, r])
 
 
