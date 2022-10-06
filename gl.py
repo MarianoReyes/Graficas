@@ -14,7 +14,7 @@ def glTexture(nombre):
 
 
 def glNormalMapping(nombre):
-    r.get_NormMapping(nombre+".bmp")
+    r.get_Normatrizmapping(nombre+".bmp")
 
 
 def glIntensidadLuz(num):
@@ -61,17 +61,6 @@ def glTriangulo(V1, V2, V3):
 
 def glLoadMMatriz(translate_factor, scale_factor, rotate):
     r.loadModelMatriz(translate_factor, scale_factor, rotate)
-
-
-def glCamaraVista(tipo):
-    if (tipo.lower() == "medium"):
-        r.lookAt((1, 0, 0), (0, 0, 0), (0, 1, 0))
-    elif(tipo.lower() == "high"):
-        r.lookAt((1, 1, 0), (0, 0, 0), (0, 1, 0.1))
-    elif(tipo.lower() == "low"):
-        r.lookAt((1, -0.6, 0), (-4, 0.1, 0), (0, 1, 0))
-    elif(tipo.lower() == "dutch"):
-        r.lookAt((1, 0, 0), (0, 0, 0), (0, 0.5, 0.2))
 
 
 def glLookAt(eye, center, up):

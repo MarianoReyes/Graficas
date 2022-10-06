@@ -135,19 +135,18 @@ class Render(object):
         self.loadVieportMatrix()
 
     def get_Texture(self, nombre):
-        t = Texture(nombre)
-        self.texture = t
+        self.texture = Texture(nombre)
 
-    def get_NormatrizOapping(self, nombre):
-        tt = Texture(nombre)
-        self.normalMapping = tt
+    # no sirve el normal mapping
+    def get_Normatrizmapping(self, nombre):
+        self.normalMapping = Texture(nombre)
 
     def backgroundcolor(self, r, g, b):
-        self.color = [intcolor(r), intcolor(g), intcolor(b)]
+        self.color = [color(r), color(g), color(b)]
 
     def pointcolor(self, r, g, b):
         #print("red:"+str(r)+" green: "+str(g)+" blue: "+str(b))
-        self.pcolor = [intcolor(r), intcolor(g), intcolor(b)]
+        self.pcolor = [color(r), color(g), color(b)]
 
     def bufferStart(self, width, height):
         self.width = width
