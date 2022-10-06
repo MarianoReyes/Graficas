@@ -1,21 +1,25 @@
-from render import Render
+from gl import *
+from math import pi
 
-r = Render()
+objeto = "models_proyecto/mask1"
+textura = "models_proyecto/texturas/mask1"
 
-r.bufferStart(1000, 1000)
+glInit()
+glCreateWindow(1024, 1024)
+glViewPort(0, 0, 1024, 1024)
+glClearColor(1, 1, 1)
+glClear()
+color = (0, 0, 1)
 
-r.backgroundcolor(1, 1, 1)
-r.clear()
-r.color_pixel(1, 1, 1)
+glTexture(textura)
 
-r.get_Texture('models/texturas/txt-dado-2.bmp')
+translate_factor = (0, 0, 0)
+scale_factor = (4, 4, 4)
+rotate = (0, pi/2, 0)
 
-color = (0, 0, 0)
-scale_factor = (2, 2, 2)
-translate_factor = (500, 500, 500)
+glLoadMMatriz(translate_factor, scale_factor, rotate)
 
-#r.generar_3d('models/face', scale_factor, translate_factor, color)
-
-r.generar_3d('models/Dice.obj', scale_factor, translate_factor, color)
-
-r.write('dado2.bmp')
+# RENDER
+glLookAt((1, 0, 0), (0, 0, 0), (0, 1, 0))
+generar_objeto(objeto, color)
+glFinish("escena_final")
