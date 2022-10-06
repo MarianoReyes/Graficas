@@ -1,4 +1,4 @@
-class MM(object):
+class matrizO(object):
     def __init__(self, matriz):
         self.matriz = matriz
 
@@ -20,7 +20,7 @@ class MM(object):
                 for k in range(othery):
                     temp += self.matriz[i][k]*other.matriz[k][j]
                 Multiplicacion[i][j] = temp
-        return MM(Multiplicacion)
+        return matrizO(Multiplicacion)
 
     def __mul__(self, other):
         selfy = len(self.matriz)
@@ -37,7 +37,7 @@ class MM(object):
                               [self.matriz[3][0] * other.matriz[0][0] + self.matriz[3][1] * other.matriz[1][0] +
                                   self.matriz[3][2] * other.matriz[2][0]+self.matriz[3][3] * other.matriz[3][0]]
                               ]
-            return MM(Multiplicacion)
+            return matrizO(Multiplicacion)
         else:
             Multiplicacion = []
 
@@ -49,7 +49,7 @@ class MM(object):
                     for k in range(othery):
                         temp += self.matriz[i][k]*other.matriz[k][j]
                     Multiplicacion[i][j] = temp
-            return MM(Multiplicacion)
+            return matrizO(Multiplicacion)
 
     def __add__(self, other):
         try:
@@ -59,7 +59,7 @@ class MM(object):
                 for x in range(len(self.matriz[0])):
                     suma[y][x] = self.matriz[y][x]+other.matriz[y][x]
 
-            return MM(suma)
+            return matrizO(suma)
         except:
             print("ERROR SUMA INVALIDAD")
 

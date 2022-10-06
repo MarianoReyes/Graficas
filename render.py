@@ -32,35 +32,35 @@ class Render(object):
         scale = V3(*scale)
         rotate = V3(*rotate)
 
-        translateM = MM([
+        translateM = matrizO([
             [1, 0, 0, translate.x],
             [0, 1, 0, translate.y],
             [0, 0, 1, translate.z],
             [0, 0, 0, 1]
         ])
 
-        scaleM = MM([
+        scaleM = matrizO([
             [scale.x,      0,      0, 0],
             [0, scale.y,      0, 0],
             [0,      0, scale.z, 0],
             [0,      0,      0, 1]
         ])
         a = rotate.x
-        rotacionx = MM([
+        rotacionx = matrizO([
             [1,     0,           0, 0],
             [0, cos(a),    -sin(a), 0],
             [0, sin(a),     cos(a), 0],
             [0,     0,          0,  1]
         ])
         a = rotate.y
-        rotaciony = MM([
+        rotaciony = matrizO([
             [cos(a),     0,    sin(a), 0],
             [0,     1,         0, 0],
             [-sin(a),     0,    cos(a), 0],
             [0,     0,         0, 1]
         ])
         a = rotate.z
-        rotacionz = MM([
+        rotacionz = matrizO([
             [cos(a), -sin(a),    0, 0],
             [sin(a), cos(a),    0, 0],
             [0,      0,    1, 0],
@@ -70,7 +70,7 @@ class Render(object):
         self.Model = translateM * rotacionM * scaleM
 
     def loadViewMatrix(self, x, y, z, center):
-        Mi = MM([
+        Mi = matrizO([
             [x.x, x.y, x.z, 0],
             [y.x, y.y, y.z, 0],
             [z.x, z.y, z.z, 0],
@@ -78,7 +78,7 @@ class Render(object):
 
         ])
 
-        O = MM([
+        O = matrizO([
             [1, 0, 0, -center.x],
             [0, 1, 0, -center.y],
             [0, 0, 1, -center.z],
@@ -89,7 +89,7 @@ class Render(object):
 
     def loadProjectionMatrix(self):
         #coef = -1/(eye.length() -center.length())
-        self.Projection = MM([
+        self.Projection = matrizO([
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, 1, 0],
@@ -104,7 +104,7 @@ class Render(object):
         w = self.width/2
         h = self.height/2
 
-        self.ViewPort = MM([
+        self.ViewPort = matrizO([
             [w, 0,   0,  x + w],
             [0, h,   0,  y + h],
             [0, 0, 128,  128],
@@ -138,7 +138,7 @@ class Render(object):
         t = Texture(nombre)
         self.texture = t
 
-    def get_NormMapping(self, nombre):
+    def get_NormatrizOapping(self, nombre):
         tt = Texture(nombre)
         self.normalMapping = tt
 
@@ -303,6 +303,10 @@ class Render(object):
         tA = next(self.trianguloarray)
         tB = next(self.trianguloarray)
         tC = next(self.trianguloarray)
+
+        nA = next(self.trianguloarray)
+        nB = next(self.trianguloarray)
+        nC = next(self.trianguloarray)
         # tA,tB,tC=Tvertices
 
         L = self.luz
@@ -347,9 +351,14 @@ class Render(object):
                             round(red*-i), round(green*-i), round(blue*-i))
 
                     elif self.texture:
-                        tx = tA.x * w + tB.x * u + tC.x * v
-                        ty = tA.y * w + tB.y * u + tC.y * v
-                        self.pcolor = self.texture.intensity(tx, ty, i)
+                        self.pcolor = self.shader(
+
+                            bar=(w, u, v),
+                            vertices=(v1, v2, v3),
+                            texture_coords=(tA, tB, tC),
+                            normals=(nA, nB, nC),
+                            light=self.luz,
+                        )
                     # if self.pcolor:
                     self.point(x, y)
         pass
@@ -384,15 +393,9 @@ class Render(object):
         for x in range(x0, x1+1):
             if steep:
                 self.point(y, x)
-                # self.point(y,x+1)
-                # self.point(y-1,x)
-                # self.point(y-1,x+1)
 
             else:
                 self.point(x, y)
-                # self.point(x+1,y)
-                # self.point(x,y-1)
-                # self.point(x+1,y-1)
 
             offset += dy*2
             if offset >= threshold:
@@ -401,7 +404,8 @@ class Render(object):
 
     def transform_vertex(self, vertex):
 
-        vertex_aumentado = MM([[vertex[0]], [vertex[1]], [vertex[2]], [1]])
+        vertex_aumentado = matrizO(
+            [[vertex[0]], [vertex[1]], [vertex[2]], [1]])
         transformed_vertex = self.ViewPort * self.Projection * \
             self.Vista * self.Model * vertex_aumentado
 
@@ -431,12 +435,32 @@ class Render(object):
                 v3 = self.transform_vertex(figura.vertices[f3])
                 v4 = self.transform_vertex(figura.vertices[f4])
 
-                ft1 = face[0][1] - 1
-                ft2 = face[1][1] - 1
-                ft3 = face[2][1] - 1
-                ft4 = face[3][1] - 1
                 # Si truena
+
                 try:
+
+                    fn1 = face[0][2] - 1
+                    fn2 = face[1][2] - 1
+                    fn3 = face[2][2] - 1
+                    fn4 = face[3][2] - 1
+
+                    vn1 = self.transform_vertex(figura.nvertices[fn1])
+                    vn2 = self.transform_vertex(figura.nvertices[fn2])
+                    vn3 = self.transform_vertex(figura.nvertices[fn3])
+                    vn4 = self.transform_vertex(figura.nvertices[fn4])
+
+                except:
+                    vn1 = 0
+                    vn2 = 0
+                    vn3 = 0
+                    vn4 = 0
+
+                try:
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
+                    ft4 = face[3][1] - 1
+
                     vt1 = V3(*figura.tvertices[ft1])
                     vt2 = V3(*figura.tvertices[ft2])
                     vt3 = V3(*figura.tvertices[ft3])
@@ -454,6 +478,9 @@ class Render(object):
                 self.trianguloarray.append(vt1)
                 self.trianguloarray.append(vt2)
                 self.trianguloarray.append(vt3)
+                self.trianguloarray.append(vn1)
+                self.trianguloarray.append(vn2)
+                self.trianguloarray.append(vn3)
 
                 self.trianguloarray.append(v1)
                 self.trianguloarray.append(v3)
@@ -461,6 +488,9 @@ class Render(object):
                 self.trianguloarray.append(vt1)
                 self.trianguloarray.append(vt3)
                 self.trianguloarray.append(vt4)
+                self.trianguloarray.append(vn1)
+                self.trianguloarray.append(vn3)
+                self.trianguloarray.append(vn4)
 
             if len(face) == 3:
                 f1 = face[0][0] - 1
@@ -471,11 +501,25 @@ class Render(object):
                 v2 = self.transform_vertex(figura.vertices[f2])
                 v3 = self.transform_vertex(figura.vertices[f3])
 
-                ft1 = face[0][1] - 1
-                ft2 = face[1][1] - 1
-                ft3 = face[2][1] - 1
+                try:
+
+                    fn1 = face[0][2] - 1
+                    fn2 = face[1][2] - 1
+                    fn3 = face[2][2] - 1
+
+                    vn1 = self.transform_vertex(figura.nvertices[fn1])
+                    vn2 = self.transform_vertex(figura.nvertices[fn2])
+                    vn3 = self.transform_vertex(figura.nvertices[fn3])
+
+                except:
+                    vn1 = 0
+                    vn2 = 0
+                    vn3 = 0
 
                 try:
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
                     vt1 = V3(*figura.tvertices[ft1])
                     vt2 = V3(*figura.tvertices[ft2])
                     vt3 = V3(*figura.tvertices[ft3])
@@ -490,6 +534,9 @@ class Render(object):
                 self.trianguloarray.append(vt1)
                 self.trianguloarray.append(vt2)
                 self.trianguloarray.append(vt3)
+                self.trianguloarray.append(vn1)
+                self.trianguloarray.append(vn2)
+                self.trianguloarray.append(vn3)
 
         print("numero de triangulos del objeto",
               nombre, " : ", len(self.trianguloarray))
