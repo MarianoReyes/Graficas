@@ -13,6 +13,14 @@ def glTexture(nombre):
     r.get_Texture(nombre+".bmp")
 
 
+def glNormalMapping(nombre):
+    r.get_NormMapping(nombre+".bmp")
+
+
+def glIntensidadLuz(num):
+    r.constantLuz = num
+
+
 def glPixel(coordenada, tam):
     temp = coordenada / tam
     return (temp*2)-1
@@ -72,6 +80,10 @@ def glLookAt(eye, center, up):
 
 def generar_objeto(nombre, color):
     r.generar_objeto(nombre, color)
+
+
+def glFondo(nombre):
+    r.background(nombre+".bmp")
 
 
 def glFinish(nombre):

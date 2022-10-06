@@ -24,6 +24,8 @@ class Render(object):
         self.Vista = None
         self.Projection = None
         self.ViewPort = None
+        self.constantLuz = 1
+        self.normalMapping = None
 
     def loadModelMatriz(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
         translate = V3(*translate)
@@ -135,6 +137,10 @@ class Render(object):
     def get_Texture(self, nombre):
         t = Texture(nombre)
         self.texture = t
+
+    def get_NormMapping(self, nombre):
+        tt = Texture(nombre)
+        self.normalMapping = tt
 
     def backgroundcolor(self, r, g, b):
         self.color = [intcolor(r), intcolor(g), intcolor(b)]
@@ -267,6 +273,26 @@ class Render(object):
         w = 1 - (cx + cy)/cz
         return (w, v, u)
 
+    def shader(self, **kwargs):
+
+        w, u, v = kwargs['bar']
+        L = kwargs['light']
+        v1, v2, v3 = kwargs['vertices']
+        tA, tB, tC = kwargs['texture_coords']
+        nA, nB, nC = kwargs['normals']
+
+        iA = nA.normalize() @ L.normalize()
+        iB = nB.normalize() @ L.normalize()
+        iC = nC.normalize() @ L.normalize()
+        i = (iA * w + iB * u + iC * v)*self.constantLuz
+
+        if self.texture:
+            tx = tA.x * w + tB.x * u + tC.x * v
+            ty = tA.y * w + tB.y * u + tC.y * v
+            return self.texture.intensity(tx, ty, -i)
+        else:
+            return (round(self.pcolor[0]*-i), round(self.pcolor[1]*-i), round(self.pcolor[2]*-i))
+
     def triangle(self):
 
         # v1,v2,v3=Vertices
@@ -304,8 +330,23 @@ class Render(object):
                 z = v1.z * w + v2.z * v + v3.z * u
                 if (self.zBuffer[x][y] < z):
                     self.zBuffer[x][y] = z
+                    if self.normalMapping:
 
-                    if self.texture:
+                        red = (self.normalMapping.pixels[y][x][2])
+                        green = (self.normalMapping.pixels[y][x][1])
+                        blue = (self.normalMapping.pixels[y][x][0])
+
+                        N = V3(red, green, blue)
+                        i = N.normalize() @ L.normalize()
+
+                        red = (self.texture.pixels[y][x][2])
+                        green = (self.texture.pixels[y][x][1])
+                        blue = (self.texture.pixels[y][x][0])
+
+                        self.pcolor = (
+                            round(red*-i), round(green*-i), round(blue*-i))
+
+                    elif self.texture:
                         tx = tA.x * w + tB.x * u + tC.x * v
                         ty = tA.y * w + tB.y * u + tC.y * v
                         self.pcolor = self.texture.intensity(tx, ty, i)
@@ -370,6 +411,10 @@ class Render(object):
             transformed_vertex.matriz[2][0]/transformed_vertex.matriz[3][0]
 
         )
+
+    def background(self, archivo):
+        imagen = Texture(archivo)
+        self.framebuffer = imagen.pixels
 
     def generar_objeto(self, nombre, color):
         figura = Obj(nombre+'.obj')
@@ -446,7 +491,8 @@ class Render(object):
                 self.trianguloarray.append(vt2)
                 self.trianguloarray.append(vt3)
 
-        print("numero de trinangulos: ", len(self.trianguloarray))
+        print("numero de triangulos del objeto",
+              nombre, " : ", len(self.trianguloarray))
         self.draw()
 
     def draw(self):
@@ -455,4 +501,13 @@ class Render(object):
             while True:
                 self.triangle()
         except:
+            self.trianguloarray = []
+            self.Model = None
+            self.Vista = None
+            self.Projection = None
+            self.ViewPort = None
+            self.normalMapping = None
+            self.zBuffer = [
+                [-99999 for x in range(self.width)]
+                for y in range(self.height)]
             StopIteration
