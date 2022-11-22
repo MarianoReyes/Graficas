@@ -1,90 +1,111 @@
-from encodings import normalize_encoding
-from render import *
-from vector import V3
-global r
+import Render
+import math
+from material import *
+from textures import *
+
+r = None
 
 
 def glInit():
-    global r
-    r = Render()
-
-
-def glTexture(nombre):
-    r.get_Texture(nombre+".bmp")
-
-
-def glNormalMapping(nombre):
-    r.get_NormMapping(nombre+".bmp")
-
-
-def glIntensidadLuz(num):
-    r.constantLuz = num
-
-
-def glPixel(coordenada, tam):
-    temp = coordenada / tam
-    return (temp*2)-1
+    pass
 
 
 def glCreateWindow(width, height):
-    r.bufferStart(width, height)
+    global r
+
+    w = width % 4
+    adjusted_width = width
+
+    if w != 0:
+        adjusted_width = width + width % 4
+
+    r = Render(adjusted_width, height)
 
 
 def glViewPort(x, y, width, height):
-    r.viewPort(x, y, width, height)
+    global r
+    r.loadViewportMatrix(
+        width if width < r.width else r.width - x - 1,
+        height if height < r.height else r.height - y - 1
+    )
+    r.viewport_param = {
+        "x": x,
+        "y": y,
+        "width": width if width < r.width else r.width - x - 1,
+        "height": height if height < r.height else r.height - y - 1
+    }
 
 
 def glClear():
+    global r
     r.clear()
 
 
-def glClearColor(red, g, b):
-    r.backgroundcolor(red, g, b)
+def glClearColor(red, green, blue):
+    global r
+    r.set_clear_color(red, green, blue)
 
 
 def glVertex(x, y):
-    r.point(*r.vertexConvert(x, y))
+    global r
 
-
-def glColor(red, g, b):
-    r.pointcolor(red, g, b)
+    r.point(* r.convert_coordinates(x, y))
 
 
 def glLine(x0, y0, x1, y1):
-    r.line(*r.vertexConvert(glPixel(x0, 500), glPixel(y0, 500)),
-           *r.vertexConvert(glPixel(x1, 500), glPixel(y1, 500)))
+    global r
+
+    r.line(
+        * r.convert_coordinates(x0, y0),
+        * r.convert_coordinates(x1, y1)
+    )
 
 
-def glTriangulo(V1, V2, V3):
-    r.triangle((V1, V2, V3))
+def glColor(red, green, blue):
+    global r
+    r.set_current_color(red, green, blue)
 
 
-def glLoadMMatriz(translate_factor, scale_factor, rotate):
-    r.loadModelMatriz(translate_factor, scale_factor, rotate)
+def glFinish(name):
+    global r
+    r.write(name)
 
 
-def glCamaraVista(tipo):
-    if (tipo.lower() == "medium"):
-        r.lookAt((1, 0, 0), (0, 0, 0), (0, 1, 0))
-    elif(tipo.lower() == "high"):
-        r.lookAt((1, 1, 0), (0, 0, 0), (0, 1, 0.1))
-    elif(tipo.lower() == "low"):
-        r.lookAt((1, -0.6, 0), (-4, 0.1, 0), (0, 1, 0))
-    elif(tipo.lower() == "dutch"):
-        r.lookAt((1, 0, 0), (0, 0, 0), (0, 0.5, 0.2))
+def glFinishZ(name):
+    global r
+    r.write_z('zBuffer-SR4.bmp')
 
 
-def glLookAt(eye, center, up):
-    r.lookAt(eye, center, up)
+def glRawPoint(x, y):
+    global r
+    r.point(x, y)
 
 
-def generar_objeto(nombre, color):
-    r.generar_objeto(nombre, color)
+def glRenderObject(name, scale, translate, rotate=(0, 0, 0)):
+    global r
+    r.generate_object(name, scale, translate, rotate)
 
 
-def glFondo(nombre):
-    r.background(nombre+".bmp")
+def glLookAt(eyes, center, up):
+    global r
+    r.lookAt(eyes, center, up)
 
 
-def glFinish(nombre):
-    r.write(nombre+'.bmp')
+def glRawLine(x0, y0, x1, y1):
+    global r
+    r.line(math.floor(x0), math.floor(y0), math.floor(x1), math.floor(y1))
+    r.line(math.ceil(x0), math.ceil(y0), math.ceil(x1), math.ceil(y1))
+
+
+def glScale(c, cord, factor):
+    return (((cord - c) * factor) + c)
+
+
+def glTexture(texture):
+    global r
+    r.texture = Texture(texture)
+
+
+def glMaterial(material):
+    global r
+    r.material = Material(material)

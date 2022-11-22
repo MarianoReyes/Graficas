@@ -1,13 +1,10 @@
-import struct
+import struct 
 
+def char(c):# 1 bytes
+    return struct.pack('=c',c.encode('ascii'))
 
-def char(c):  # 1 bytes
-    return struct.pack('=c', c.encode('ascii'))
+def word(w):# 2 bytes
+    return struct.pack('=h',w)
 
-
-def word(w):  # 2 bytes
-    return struct.pack('=h', w)
-
-
-def dword(d):  # 4 bytes
-    return struct.pack('=l', d)
+def dword(d):# 4 bytes
+    return struct.pack('=l',d)

@@ -1,4 +1,4 @@
-from color import *
+from Color import *
 
 
 class Material(object):
@@ -21,7 +21,7 @@ class Material(object):
 
                 if prefix == 'Kd':
                     self.materials[self.current_material] = {
-                        'difuse': color_range(*(float(x) for x in value.split(' ')))
+                        'difuse': color_clamping(*(float(x) for x in value.split(' ')))
                     }
 
                 if prefix == 'newmtl':
