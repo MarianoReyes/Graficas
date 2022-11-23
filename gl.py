@@ -1,7 +1,8 @@
-import Render
+import render
 import math
 from material import *
 from textures import *
+import shader as Shader
 
 r = None
 
@@ -19,14 +20,14 @@ def glCreateWindow(width, height):
     if w != 0:
         adjusted_width = width + width % 4
 
-    r = Render(adjusted_width, height)
+    r = render.Render(adjusted_width, height)
 
 
 def glViewPort(x, y, width, height):
     global r
     r.loadViewportMatrix(
-        width if width < r.width else r.width - x - 1,
-        height if height < r.height else r.height - y - 1
+        width if width < r.width else r.width - x,
+        height if height < r.height else r.height - y
     )
     r.viewport_param = {
         "x": x,
@@ -76,14 +77,14 @@ def glFinishZ(name):
     r.write_z('zBuffer-SR4.bmp')
 
 
-def glRawPoint(x, y):
-    global r
-    r.point(x, y)
-
-
 def glRenderObject(name, scale, translate, rotate=(0, 0, 0)):
     global r
-    r.generate_object(name, scale, translate, rotate)
+    r.generar_objeto(name, scale, translate, rotate)
+
+
+def glShader(shader=None):
+    global r
+    r.active_shader = shader
 
 
 def glLookAt(eyes, center, up):
@@ -91,21 +92,22 @@ def glLookAt(eyes, center, up):
     r.lookAt(eyes, center, up)
 
 
-def glRawLine(x0, y0, x1, y1):
-    global r
-    r.line(math.floor(x0), math.floor(y0), math.floor(x1), math.floor(y1))
-    r.line(math.ceil(x0), math.ceil(y0), math.ceil(x1), math.ceil(y1))
-
-
-def glScale(c, cord, factor):
-    return (((cord - c) * factor) + c)
-
-
 def glTexture(texture):
     global r
+    r.normal_map = None
     r.texture = Texture(texture)
+
+
+def glNormalMap(texture):
+    global r
+    r.normal_map = Texture(texture)
 
 
 def glMaterial(material):
     global r
     r.material = Material(material)
+
+
+def glBackground(texture):
+    global r
+    r.framebuffer = texture.pixels

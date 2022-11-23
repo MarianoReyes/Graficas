@@ -1,26 +1,24 @@
-from gl import *
+# implementacion del shader a un objeto circular en forma de planeta
+# se simula jupiter
 
-fondo = "espacio"
-objeto = "planeta"
-glInit()
-glCreateWindow(720, 720)
-glViewPort(0, 0, 720, 720)
+from gl import *
+from shader import *
+
+glCreateWindow(1024, 1024)
+
+# color de fondo igual a referencia de jupiter.jpg
 glClearColor(0, 0, 0)
 glClear()
-glColor(1, 1, 1)
-color = (1, 0, 1)
-# glTexture(objeto)
-glFondo(fondo)
-translate_factor = (0, 0, 0)
-scale_factor = (0.65, 0.65, 0.65)
-rotate = (0, 0, 0)
-glLoadMMatriz(translate_factor, scale_factor, rotate)
-# En cámara ingresar el tipo de toma que se desea ver
-# Se dibujara en R2-D23D
-camara = "medium"
-glCamaraVista(camara)
-obj3D(objeto, color)
-glFinish(objeto+"3D")
 
+glViewPort(0, 0, 1024, 1024)
 
-# glPlano(objeto,objeto,4096,4096)
+glLookAt((0, 0, 100), (0, 0, 0), (0, 1, 0))
+
+# funcion del gl creada para colocarle shader al objeto circular del planeta
+# se realizo una clase separada de shader para asemejarse al trabajo con textura y un mayor orden
+glShader(shader_planeta)
+
+glRenderObject('./planeta.obj', scale=(0.0008, 0.0008, 0.0008),
+               translate=(0, 0, 0), rotate=(0, 0, 0))
+
+glFinish('lab2.bmp')

@@ -1,799 +1,664 @@
-import math
-from turtle import width
-from Obj import Obj
-import random
-from WriteUtilities import * 
-from Color import *
-from vector import V3
-from textures import *
-from matriz import *
 from math import *
-colors={'Body4': (0, 0, 1), 'Body5': (0.8, 0.8, 1), 'Body6': (0.8, 0.8, 1), 'Body11': (0.8, 0.8, 1), 'Body12': (0.8, 0.8, 1), 'Body13': (0.8, 0.8, 1), 'Body14': (0.8, 0.8, 1), 'Body15': (0.8, 0.8, 1), 'Body16': (0.8, 0.8, 1), 'Body17': (0.8, 0.8, 1), 'Body488': (0, 0, 1)}
-colors={}
+from WriteUtilities import *
+from matriz import matriz
+import Color as c
+from vector import V3
+import Obj
+
 
 class Render(object):
-    
-    def __init__(self,w=None,h=None):
-        print("Render Class Created")
-        self.pointcolor(1,0,1)
-        self.yVp=0
-        self.xVp=0
-        self.width=w
-        self.height=h
-        self.texture=None
-        self.trianguloarray = []
-        self.luz =V3(0,0,-1)
+
+    def __repr__(self):
+        return "render %s x %s " % (self.width, self.height)
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.current_color = c.color(0, 0, 0)
+        self.clear_color = c.color(255, 255, 255)
+        self.texture = None
+        self.material = None
         self.Model = None
-        self.Vista = None
+        self.light = V3(0, 0, -1)
+        self.View = None
         self.Projection = None
-        self.ViewPort = None
-        self.active_shader=None
-        self.planetarray=[]
-     
-    def loadModelMatriz(self,translate=(0,0,0),scale=(1,1,1),rotate=(0,0,0)):
-        translate=V3(*translate)
-        scale=V3(*scale)
-        rotate=V3(*rotate)
-        
-        translateM=MM([
-            [1,0,0,translate.x],
-            [0,1,0,translate.y],
-            [0,0,1,translate.z],
-            [0,0,0,1]
+        self.active_shader = None
+        self.trianguloarray = []
+        self.normal_map = None
+        self.clear()
+
+    def loadModelMatrix(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
+        translate = V3(*translate)
+        scale = V3(*scale)
+        rotate = V3(*rotate)
+
+        translation_matrix = matriz([
+            [1, 0, 0, translate.x],
+            [0, 1, 0, translate.y],
+            [0, 0, 1, translate.z],
+            [0, 0, 0,           1]
         ])
-        
-        scaleM=MM([
-            [scale.x,      0,      0,0],
-            [      0,scale.y,      0,0],
-            [      0,      0,scale.z,0],
-            [      0,      0,      0,1]
+
+        scale_matrix = matriz([
+            [scale.x, 0, 0, 0],
+            [0, scale.y, 0, 0],
+            [0, 0, scale.z, 0],
+            [0, 0, 0, 1]
         ])
-        a=rotate.x
-        rotacionx=MM([
-            [1,     0,           0, 0],
-            [0, cos(a),    -sin(a), 0],
-            [0, sin(a),     cos(a), 0],
-            [0,     0,          0,  1]
+
+        a = rotate.x
+        rotation_x = matriz([
+            [1,      0,       0, 0],
+            [0, cos(a), -sin(a), 0],
+            [0, sin(a),  cos(a), 0],
+            [0,      0,       0, 1]
         ])
-        a=rotate.y
-        rotaciony=MM([
-            [ cos(a),     0,    sin(a), 0],
-            [      0,     1,         0, 0],
-            [-sin(a),     0,    cos(a), 0],
-            [      0,     0,         0, 1]
+
+        a = rotate.y
+        rotation_y = matriz([
+            [cos(a), 0, sin(a), 0],
+            [0, 1,      0, 0],
+            [-sin(a), 0, cos(a), 0],
+            [0, 0,      0, 1]
         ])
-        a=rotate.z
-        rotacionz=MM([
-            [cos(a),-sin(a),    0,0],
-            [sin(a), cos(a),    0,0],
-            [     0,      0,    1,0],
-            [     0,      0,    0,1]
+
+        a = rotate.z
+        rotation_z = matriz([
+            [cos(a), -sin(a), 0, 0],
+            [sin(a), cos(a), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
         ])
-        rotacionM=rotacionx * rotaciony * rotacionz
-        self.Model = translateM *rotacionM * scaleM
-    
+
+        rotation_matrix = rotation_x * rotation_y * rotation_z
+        self.Model = translation_matrix * rotation_matrix * scale_matrix
+
     def loadViewMatrix(self, x, y, z, center):
-        Mi = MM([
+
+        Mi = matriz([
             [x.x, x.y, x.z, 0],
             [y.x, y.y, y.z, 0],
-            [z.x, z.y, z.z, 0], 
-            [0,0,0,1]
-
+            [z.x, z.y, z.z, 0],
+            [0, 0, 0, 1],
         ])
 
-        O = MM([
+        O = matriz([
             [1, 0, 0, -center.x],
             [0, 1, 0, -center.y],
             [0, 0, 1, -center.z],
             [0, 0, 0,         1]
         ])
 
-        self.Vista = Mi * O
+        self.View = Mi * O
 
-    def loadProjectionMatrix(self):
-        #coef = -1/(eye.length() -center.length())
-        self.Projection = MM([
-            [1,0,0,0],
-            [0,1,0,0],
-            [0,0,1,0],
-            [0,0,-0.001,1],
-            
-        ])
-        
-    def loadVieportMatrix(self):
-        
-        x=0
-        y=0
-        w=self.width/2
-        h=self.height/2
-        
-        self.ViewPort = MM([
-            [w,0,   0,  x + w],
-            [0,h,   0,  y + h],
-            [0,0, 128,  128  ],
-            [0,0,   0,  1    ],
-            
+    def loadProjectionViewMatrix(self, eyes, center):
+        coeff = -1/(eyes.length() - center.length())
+        self.Projection = matriz([
+            [1, 0,      0, 0],
+            [0, 1,      0, 0],
+            [0, 0,      1, 0],
+            [0, 0, coeff, 1]
         ])
 
-    def lookAt(self, eye, center, up):
-        eye = V3(*eye)
+    def loadViewportMatrix(self, width=0, height=0):
+        x = 0
+        y = 0
+        w = width if width != 0 else self.width/2
+        h = height if height != 0 else self.height/2
+
+        self.Viewport = matriz([
+            [w, 0,   0, x + (w/2)],
+            [0, h,   0, y + (h/2)],
+            [0, 0, 128,   128],
+            [0, 0,   0,     1]
+        ])
+
+    def lookAt(self, eyes, center, up):
+        eyes = V3(*eyes)
         center = V3(*center)
         up = V3(*up)
 
-        z = (eye-center).normalize()
+        z = (eyes - center).normalize()
         x = (up * z).normalize()
         y = (z * x).normalize()
 
-        #self.active_shader=self.shader
-        self.loadViewMatrix(x,y,z, center)
-        self.loadProjectionMatrix()
-    
-    def vertexConvert (self,x,y):
-        return [round(self.xVp+(x+1)*0.5*self.widthVp-1),round(self.yVp+(y+1)*0.5*self.heightVp-1)]    
-    
-    def viewPort (self,x,y,neww,newh):
-        self.widthVp = neww
-        self.heightVp = newh
-        self.yVp=y
-        self.xVp=x
-        self.loadVieportMatrix()
-        
-        
-    def get_Texture(self,nombre):
-        t=Texture(nombre)
-        self.texture=t
-    
-    def backgroundcolor(self,r,g,b):
-        self.color = [intcolor(r),intcolor(g),intcolor(b)]
-    
-    def pointcolor(self,r,g,b):
-        #print("red:"+str(r)+" green: "+str(g)+" blue: "+str(b))
-        self.pcolor =[intcolor(r),intcolor(g),intcolor(b)]
-    
-    def bufferStart (self, width, height):
-        self.width = width
-        self.height = height 
-        self.heightVp =height
-        self.widthVp =width
-        
-        self.backgroundcolor(0,0,0)
-        self.clear()
-        
-    def clear (self):
-        self.framebuffer=[
-            [rgbcolor(*self.color) for x in range(self.width)]
+        self.loadViewMatrix(x, y, z, center)
+        self.loadProjectionViewMatrix(eyes, center)
+
+    def clear(self):
+        self.framebuffer = [
+            [self.clear_color for x in range(self.width)]
             for y in range(self.height)
         ]
-        
-        self.zBuffer=[
-            [-99999 for x in range(self.width)]
+
+        self.zBuffer = [
+            [-9999999 for x in range(self.width)]
             for y in range(self.height)
         ]
-        
-        self.zpaint=[
-            [rgbcolor(*(10,50,180)) for x in range(self.width)]
+
+        self.zClear = [
+            [self.clear_color for x in range(self.width)]
             for y in range(self.height)
         ]
-        
-    def write(self, filename="a.bmp"):
+
+    def clamping(self, num):
+        return int(max(min(num, 255), 0))
+
+    def set_clear_color(self, r, g, b):
+        adjusted_r = self.clamping(r * 255)
+        adjusted_g = self.clamping(g * 255)
+        adjusted_b = self.clamping(b * 255)
+        self.clear_color = c.color(adjusted_r, adjusted_g, adjusted_b)
+
+    def write(self, filename):
         f = open(filename, 'bw')
-        
-        extraBytes = (4 - (self.width * 3) % 4) % 4
-        new_width_bytes = (self.width * 3) + extraBytes
-        
-        #pixel header
+
+        # pixel header
         f.write(char('B'))
         f.write(char('M'))
-        f.write(dword(14 + 40 + new_width_bytes * self.height * 3))
+        f.write(dword(14 + 40 + self.width * self.height * 3))
         f.write(word(0))
         f.write(word(0))
         f.write(dword(14 + 40))
-        
-        #info header
+
+        # info header
         f.write(dword(40))
         f.write(dword(self.width))
         f.write(dword(self.height))
         f.write(word(1))
         f.write(word(24))
         f.write(dword(0))
-        f.write(dword(self.height * self.width * 3))
+        f.write(dword(self.width * self.height * 3))
         f.write(dword(0))
         f.write(dword(0))
         f.write(dword(0))
         f.write(dword(0))
-        
-        #pixel data
-        
-        for x in range(self.height):
-            for y in range(self.width):
-                f.write(self.framebuffer[x][y])
-            extra = []
-            for i in range(extraBytes):
-                extra.append(0)
-            f.write(bytes(extra))
+
+        # pixel data
+        for y in range(self.height):
+            for x in range(self.width):
+                try:
+                    f.write(self.framebuffer[y][x])
+                except:
+                    pass
+
         f.close()
-        print("BMP Create in "+filename)
-    
-    def writez(self):
-        f = open("zbuffer.bmp", 'bw')
-        
-        extraBytes = (4 - (self.width * 3) % 4) % 4
-        new_width_bytes = (self.width * 3) + extraBytes
-        
-        #pixel header
+
+    def write_z(self, filename):
+        f = open(filename, 'bw')
+
+        # pixel header
         f.write(char('B'))
         f.write(char('M'))
-        f.write(dword(14 + 40 + new_width_bytes * self.height * 3))
+        f.write(dword(14 + 40 + self.width * self.height * 3))
         f.write(word(0))
         f.write(word(0))
         f.write(dword(14 + 40))
-        
-        #info header
+
+        # info header
         f.write(dword(40))
         f.write(dword(self.width))
         f.write(dword(self.height))
         f.write(word(1))
         f.write(word(24))
         f.write(dword(0))
-        f.write(dword(self.height * self.width * 3))
+        f.write(dword(self.width * self.height * 3))
         f.write(dword(0))
         f.write(dword(0))
         f.write(dword(0))
         f.write(dword(0))
-        
-        #pixel data
-        
+
+        # pixel data
         for x in range(self.height):
             for y in range(self.width):
-                f.write(self.zpaint[x][y])
-            extra = []
-            for i in range(extraBytes):
-                extra.append(0)
-            f.write(bytes(extra))
+                try:
+                    f.write(self.zClear[y][x])
+                except:
+                    pass
+
         f.close()
-        
-    def point(self, x,y):
-        if (x < self.width and x >= 0 and y < self.height and y >= 0):
-            self.framebuffer[y][x] = rgbcolor(*self.pcolor)
-            
-    def bounding_box(self,A,B,C):
-        xs=[A.x,B.x,C.x]
-        ys=[A.y,B.y,C.y]
-        
-        xs.sort()
-        ys.sort()
-        return V3(xs[0],ys[0]),V3(xs[-1],ys[-1])
-    
-    def baricentric(self,A,B,C,P):
-        cx,cy,cz = V3.cross(
-            V3(B.x - A.x,C.x - A.x,A.x - P.x),
-            V3(B.y - A.y,C.y - A.y,A.y - P.y)
-        )
-        
-        u= cx / cz
-        v= cy / cz
-        w= 1 -(cx + cy)/cz 
-        return (w,u,v)
-    
-    def triangulo2(self,temp):
-        #temp =[v1,v2,v3]
-        for i in range(len(temp)):
-            self.line(temp[i],temp[(i+1)%3])
-    
-    def shader(self,**kwargs):
-                
-        w,u,v = kwargs['bar']
-        L=kwargs['light']
-        v1,v2,v3 = kwargs['vertices']
-        tA,tB,tC = kwargs['texture_coords']
-        nA,nB,nC = kwargs['normals']
-        
-        iA=nA.normalize() @ L.normalize()
-        iB=nB.normalize() @ L.normalize()
-        iC=nC.normalize() @ L.normalize()
-        i = (iA * w + iB * u + iC * v)*1.75
 
-        
-        
-        if self.texture:
-            tx = tA.x * w + tB.x * u + tC.x * v
-            ty = tA.y * w + tB.y * u + tC.y * v 
-            return self.texture.intensity(tx, ty, -i)
-        else:
-            return (round(self.pcolor[0]*-i),round(self.pcolor[1]*-i),round(self.pcolor[2]*-i))
+    def set_current_color(self, r, g, b):
+        adjusted_r = self.clamping(r * 255)
+        adjusted_g = self.clamping(g * 255)
+        adjusted_b = self.clamping(b * 255)
+        self.current_color = c.color(adjusted_r, adjusted_g, adjusted_b)
 
-    def planeta(self,**kwargs):
-                    
-        w,u,v = kwargs['bar']
-        L=kwargs['light']
-        v1,v2,v3 = kwargs['vertices']
-        tA,tB,tC = kwargs['texture_coords']
-        nA,nB,nC = kwargs['normals']
-        x= kwargs['coordX']
-        y= kwargs['coordY']
+    def point(self, x, y):
+        try:
+            if x >= 0 and x < self.width and y >= 0 and y < self.height:
+                self.framebuffer[x][y] = self.current_color
+        except:
+            pass
 
-        
-        iA=nA.normalize() @ L.normalize()
-        iB=nB.normalize() @ L.normalize()
-        iC=nC.normalize() @ L.normalize()
-        i = (iA * w + iB * u + iC * v)*-1.75
-
-        self.pcolor=(round(122*i),round(122*i),round(122*i))
-        self.point(round((x/4)+25),round((y/4)))
-
-        self.pcolor=(round(218*i),round(218*i),round(218*i))
-        self.point(round((x/4.5)+self.width*0.7),round((y/4.5)+self.width*0.7))
-
-        rojorandom= random.randint(0,50)
-        rojo = 238 +rojorandom
-        verde = 109
-        azul= 60
-        aleatorio = random.randint(0,3)
-        
-        if y % 2 ==0:
-            if x >355 and aleatorio ==2:
-                return (round(245*i),round(120*i),round(66*i))
-            elif aleatorio== 1:
-                return (round(234*i),round(105*i),round(56*i))
-            else:
-                return (round(rojo*i),round(verde*i),round(azul*i))
-
-        else:
-            if x <355 and aleatorio ==3:
-                return (round(245*i),round(120*i),round(66*i))
-            elif aleatorio== 3:
-                return (round(234*i),round(105*i),round(56*i))
-            else:
-                return (round(rojo*i),round(verde*i),round(azul*i))
-
-    def triangulo(self):
-        
-        #v1,v2,v3=Vertices
-        v1=next(self.trianguloarray)
-        v2=next(self.trianguloarray)
-        v3=next(self.trianguloarray)
-        
-        tA=next(self.trianguloarray)
-        tB=next(self.trianguloarray)
-        tC=next(self.trianguloarray)
-            #tA,tB,tC=Tvertices
-        
-        nA=next(self.trianguloarray)
-        nB=next(self.trianguloarray)
-        nC=next(self.trianguloarray)
-
-        
-        #Quitar
-        L=self.luz
-        N = (v3-v1) * (v2-v1)
-        
-        
-        i= N.normalize() @ L.normalize()
-        
-        if i <= 0 or i>1:
+    def convert_coordinates(self, x, y):
+        if x < -1 or x > 1 or y < -1 or y > 1:
             return
-        
-        #Quitar
-        
-        Bmin,Bmax = self.bounding_box(v1,v2,v3)
-        Bmin.round()
-        Bmax.round()
-        
-        for x in range(Bmin.x,Bmax.x+1):
-            for y in range(Bmin.y,Bmax.y+1):
-                w,u,v = self.baricentric(v1,v2,v3,V3(x,y))
-                
-                if(w<0 or v<0 or u <0):
-                    continue
-                
-                z= v1.z * w + v2.z * v + v3.z * u
-                if (self.zBuffer[x][y]<z):
-                    self.zBuffer[x][y]=z
-                    """
-                    if self.texture:
-                        tx = tA.x * w + tB.x * u + tC.x * v
-                        ty = tA.y * w + tB.y * u + tC.y * v 
-                        self.pcolor = self.texture.intensity(tx, ty, i)
-                    """
-                    #"""
-                    if self.texture:
-                        self.pcolor=self.shader(
 
-                            bar=(w,u,v),
-                            vertices=(v1,v2,v3),
-                            texture_coords = (tA,tB,tC),
-                            normals=(nA,nB,nC),
-                            light= self.luz,
-                        )
-                    else:
-                        #Borrrar entrega planeta
-                        self.pcolor=self.planeta(
+        adjusted_x = x + 1
+        adjusted_y = y + 1
 
-                            bar=(w,u,v),
-                            vertices=(v1,v2,v3),
-                            texture_coords = (tA,tB,tC),
-                            normals=(nA,nB,nC),
-                            light= self.luz,
-                            coordX=x,
-                            coordY=y
+        converted_x = (adjusted_x * self.viewport_param["width"])/2
+        converted_y = (adjusted_y * self.viewport_param["height"])/2
 
-                        )
-                    #"""
-                    
-                    
-                    self.point(x,y)
-        pass
-        
-    def clamp(self,val):
-        temp= round(val*255)
-        return max(0,min(temp,255))
-        
-    def line (self,V1,V2):
-        x0=V1.x
-        y0=V1.y
-        x1=V2.x
-        y1=V2.y   
-        dy = abs(y1 -y0)
-        dx = abs(x1- x0)
-        steep = dy > dx    
-        
+        final_x = int(converted_x + self.viewport_param["x"])
+        final_y = int(converted_y + self.viewport_param["y"])
+
+        return final_x, final_y
+
+    def linea_nueva(self, v1, v2):
+        x0 = round(v1.x)
+        x1 = round(v2.x)
+        y0 = round(v1.y)
+        y1 = round(v2.y)
+
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+
+        steep = dy > dx
+
         if steep:
             x0, y0 = y0, x0
             x1, y1 = y1, x1
-        
-        if x0>x1:
-            x0,x1 = x1,x0
-            y0,y1 = y1,y0
-        
-        dy = abs(y1 -y0)
-        dx = abs(x1- x0)
-        
-        offset=0
-        threshold = dx * 2
-        y=y0
-        for x in range(x0,x1+1):
+
+        if x0 > x1:
+            x0, x1 = x1, x0
+            y0, y1 = y1, y0
+
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+
+        offset = 0
+        threshold = dx
+        y = y0
+
+        for x in range(x0, x1 + 1):
             if steep:
-                self.point(y,x)
-                ##self.point(y,x+1)
-                ##self.point(y-1,x)
-                ##self.point(y-1,x+1)
-                
-                
-                
-                
-                
+                self.point(x, y)
             else:
-                self.point(x,y)
-                #self.point(x+1,y)
-                #self.point(x,y-1)
-                #self.point(x+1,y-1)
-                
-                
-                
-            offset+=dy*2
+                self.point(y, x)
+
+            offset += dy * 2
+
             if offset >= threshold:
-                y+=1 if y0<y1 else -1
-                threshold+=dx*2
+                y += 1 if y0 < y1 else -1
 
-    def transform_vertex(self,vertex):
-        
-        vertex_aumentado=MM([[vertex[0]],[vertex[1]],[vertex[2]],[1]])
-        transformed_vertex= self.ViewPort * self.Projection * self.Vista * self.Model * vertex_aumentado
-        
-        
+                threshold += dx * 2
+
+    def line(self, x0, y0, x1, y1):
+
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+
+        steep = dy > dx
+
+        if steep:
+            x0, y0 = y0, x0
+            x1, y1 = y1, x1
+
+        if x0 > x1:
+            x0, x1 = x1, x0
+            y0, y1 = y1, y0
+
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+
+        offset = 0
+        threshold = dx
+        y = y0
+
+        for x in range(x0, x1 + 1):
+            if steep:
+                self.point(y, x)
+            else:
+                self.point(x, y)
+
+            offset += dy * 2
+
+            if offset >= threshold:
+                y += 1 if y0 < y1 else -1
+
+                threshold += dx * 2
+
+    def transform_vertex(self, vertex):
+        augmented_vertex = matriz([
+            [vertex[0]],
+            [vertex[1]],
+            [vertex[2]],
+            [1]
+        ])
+
+        if(self.View and self.Projection):
+            transformed_vertex = self.Viewport * self.Projection * \
+                self.View * self.Model * augmented_vertex
+        else:
+            transformed_vertex = self.Model * augmented_vertex
+
+        transformed_vertex = transformed_vertex.matriz
+
         return V3(
-            transformed_vertex.matriz[0][0]/transformed_vertex.matriz[3][0],
-            transformed_vertex.matriz[1][0]/transformed_vertex.matriz[3][0],
-            transformed_vertex.matriz[2][0]/transformed_vertex.matriz[3][0]
-            
+            transformed_vertex[0][0] / transformed_vertex[3][0],
+            transformed_vertex[1][0] / transformed_vertex[3][0],
+            transformed_vertex[2][0] / transformed_vertex[3][0],
         )
-    def fondo(self,nombre):
-        t=Texture(nombre)
-        self.framebuffer=t.pixels
 
-    def plano(self,nombre,OBJ3D):
-        t=Texture(nombre)
-        self.framebuffer=t.pixels
+    def bounding_box(self, A, B, C):
+        coords = [(A.x, A.y), (B.x, B.y), (C.x, C.y)]
 
+        xmin = 999999
+        xmax = -999999
+        ymin = 999999
+        ymax = -999999
 
-        figura = Obj(OBJ3D+'.obj')
-        w=[t.width,t.heigth,0]
-        e=[0,0,0]
+        for (x, y) in coords:
+            if x < xmin:
+                xmin = x
+            if x > xmax:
+                xmax = x
+            if y < ymin:
+                ymin = y
+            if y > ymax:
+                ymax = y
 
+        return V3(xmin, ymin), V3(xmax, ymax)
 
-        for face in figura.caras:
-            g=face.pop()
-            if len(face)==3:
-                f1 = face[0][1] - 1
-                f2 = face[1][1] - 1
-                f3 = face[2][1] - 1
+    def cross(self, v1, v2):
+        return (
+            v1.y * v2.z - v1.z * v2.y,
+            v1.z * v2.x - v1.x * v2.z,
+            v1.x * v2.y - v1.y * v2.x
+        )
 
-                v1 = self.transform_vertex(figura.tvertices[f1],w,e)
-                v2 = self.transform_vertex(figura.tvertices[f2],w,e)
-                v3 = self.transform_vertex(figura.tvertices[f3],w,e)
+    def barycentric(self, A, B, C, P):
+        cx, cy, cz = self.cross(
+            V3(B.x - A.x, C.x - A.x, A.x - P.x),
+            V3(B.y - A.y, C.y - A.y, A.y - P.y)
+        )
+        if cz == 0:
+            return(-1, -1, -1)
 
-                self.triangulo2((v1,v2,v3))
-            
-            if len(face)==4:
-                
-                f1 = face[0][1] - 1
-                f2 = face[1][1] - 1
-                f3 = face[2][1] - 1
-                f4 = face[3][1] - 1
+        u = cx / cz
+        v = cy / cz
+        w = 1 - (cx/cz + cy/cz)
 
-                v1 = self.transform_vertex(figura.tvertices[f1],w,e)
-                v2 = self.transform_vertex(figura.tvertices[f2],w,e)
-                v3 = self.transform_vertex(figura.tvertices[f3],w,e)
-                v4 = self.transform_vertex(figura.tvertices[f4],w,e)
+        return (w, v, u)
 
-                
-                self.triangulo2((v1,v2,v3))
-                self.triangulo2((v1,v3,v4))
-                
-                
-        self.write()   
-    
-    def ObjCall(self,nombre,color):
-            figura = Obj(nombre+'.obj')
-            self.pointcolor(*color)
-            for face in figura.caras:
-                if len(face)==4:
-                    f1 = face[0][0] - 1
-                    f2 = face[1][0] - 1
-                    f3 = face[2][0] - 1
-                    f4 = face[3][0] - 1
+    def triangle(self):
 
-                    v1 = self.transform_vertex(figura.vertices[f1])
-                    v2 = self.transform_vertex(figura.vertices[f2])
-                    v3 = self.transform_vertex(figura.vertices[f3])
-                    v4 = self.transform_vertex(figura.vertices[f4])
+        A = next(self.trianguloarray)
+        B = next(self.trianguloarray)
+        C = next(self.trianguloarray)
 
+        if self.texture:
+            tA = next(self.trianguloarray)
+            tB = next(self.trianguloarray)
+            tC = next(self.trianguloarray)
 
-                   
-                    #Si truena
-                    
-                    try:
-                    
-                        fn1 = face[0][2] - 1
-                        fn2 = face[1][2] - 1
-                        fn3 = face[2][2] - 1
-                        fn4 = face[3][2] - 1
-                        
-                        
-                        vn1 = self.transform_vertex(figura.nvertices[fn1])
-                        vn2 = self.transform_vertex(figura.nvertices[fn2])
-                        vn3 = self.transform_vertex(figura.nvertices[fn3])
-                        vn4 = self.transform_vertex(figura.nvertices[fn4])
+        if self.active_shader:
+            nA = next(self.trianguloarray)
+            nB = next(self.trianguloarray)
+            nC = next(self.trianguloarray)
 
-                    except:
-                        vn1 = 0
-                        vn2 = 0
-                        vn3 = 0
-                        vn4 = 0
-                    
-                    try:
-                        ft1 = face[0][1] - 1
-                        ft2 = face[1][1] - 1
-                        ft3 = face[2][1] - 1
-                        ft4 = face[3][1] - 1
+        Bmin, Bmax = self.bounding_box(A, B, C)
 
-                        vt1 = V3(*figura.tvertices[ft1])
-                        vt2 = V3(*figura.tvertices[ft2])
-                        vt3 = V3(*figura.tvertices[ft3])
-                        vt4 = V3(*figura.tvertices[ft4])
-                    except:
-                        vt1=0
-                        vt2=0
-                        vt3=0
-                        vt4=0
-                        
+        L = self.light
+        N = (C - A) * (B - A)
+        L = V3(0, 0, -1)
+        i = N.normalize() @ L.normalize()
 
-                    #self.trianguloarray.extend(v1,v2,v3,vt1,vt2,vt3)
+        for x in range(round(Bmin.x), round(Bmax.x) + 1):
+            for y in range(round(Bmin.y), round(Bmax.y) + 1):
+
+                w, v, u = self.barycentric(A, B, C, V3(x, y))
+                if (w < 0 or v < 0 or u < 0):
+                    continue
+
+                z = A.z * w + B.z * u + C.z * v
+                factor = z/self.width
+
+                if (self.zBuffer[x][y] <= z):
+                    self.zBuffer[x][y] = z
+                    self.zClear[x][y] = c.color_clamping(
+                        factor, factor, factor)
+
+                    if self.normal_map:
+
+                        tx = tA.x * w + tB.x * u + tC.x * v
+                        ty = tA.y * w + tB.y * u + tC.y * v
+
+                        normal_color = self.normal_map.get_color_with_intensity(
+                            tx, ty, 1)
+                        #normal_color = normal_color.normalize()
+                        #print(normal_color[0], normal_color[1], normal_color[2])
+
+                        i = V3(normal_color[2], normal_color[1],
+                               normal_color[0]).normalize() @ L.normalize()
+                        i *= -1
+                        self.current_color = self.texture.get_color_with_intensity(
+                            tx, ty, i)
+
+                    else:
+
+                        if self.active_shader:
+                            self.current_color = self.active_shader(
+                                bar=(w, u, v),
+                                vertices=(A, B, C),
+                                texture_coords=(
+                                    tA, tB, tC) if self.texture else None,
+                                normals=(nA, nB, nC),
+                                light=L,
+                                texture=self.texture,
+                                height=y,
+                                width=x
+                            )
+
+                        else:
+
+                            if self.texture:
+
+                                tx = tA.x * w + tB.x * u + tC.x * v
+                                ty = tA.y * w + tB.y * u + tC.y * v
+                                self.current_color = self.texture.get_color_with_intensity(
+                                    tx, ty, i)
+
+                            else:
+
+                                if i <= 0 or i > 1:
+                                    return
+
+                                grey = round(255 * i)
+                                self.current_color = c.color(grey, grey, grey)
+
+                    self.point(y, x)
+
+    def generar_objeto(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
+        # if self.texture:
+        # print('si')
+
+        self.loadModelMatrix(translate, scale, rotate)
+        self.trianguloarray = []
+        cube = Obj.Obj(name)
+
+        for faceDict in cube.faces:
+
+            face = faceDict['face']
+            if len(face) == 4:
+                v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
+                v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
+                v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
+                v4 = self.transform_vertex(cube.vertices[face[3][0] - 1])
+
+                if self.texture and len(cube.tvertices) != 0:
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
+                    ft4 = face[3][1] - 1
+
+                    vt1 = V3(*cube.tvertices[ft1])
+                    vt2 = V3(*cube.tvertices[ft2])
+                    vt3 = V3(*cube.tvertices[ft3])
+                    vt4 = V3(*cube.tvertices[ft4])
+
+                    #self.material = faceDict['material']
                     self.trianguloarray.append(v1)
                     self.trianguloarray.append(v2)
                     self.trianguloarray.append(v3)
                     self.trianguloarray.append(vt1)
                     self.trianguloarray.append(vt2)
                     self.trianguloarray.append(vt3)
-                    self.trianguloarray.append(vn1)
-                    self.trianguloarray.append(vn2)
-                    self.trianguloarray.append(vn3)
-                    
-                    
+
+                    if (len(cube.nvertices) != 0 and self.active_shader):
+
+                        fn1 = face[0][2] - 1
+                        fn2 = face[1][2] - 1
+                        fn3 = face[2][2] - 1
+
+                        vn1 = V3(*cube.nvertices[fn1])
+                        vn2 = V3(*cube.nvertices[fn2])
+                        vn3 = V3(*cube.nvertices[fn3])
+
+                        self.trianguloarray.append(vn1)
+                        self.trianguloarray.append(vn2)
+                        self.trianguloarray.append(vn3)
+
                     self.trianguloarray.append(v1)
                     self.trianguloarray.append(v3)
                     self.trianguloarray.append(v4)
                     self.trianguloarray.append(vt1)
                     self.trianguloarray.append(vt3)
                     self.trianguloarray.append(vt4)
-                    self.trianguloarray.append(vn1)
-                    self.trianguloarray.append(vn3)
-                    self.trianguloarray.append(vn4)
-                
-                if len(face)==3:
-                    f1 = face[0][0] - 1
-                    f2 = face[1][0] - 1
-                    f3 = face[2][0] - 1
 
-                    v1 = self.transform_vertex(figura.vertices[f1])
-                    v2 = self.transform_vertex(figura.vertices[f2])
-                    v3 = self.transform_vertex(figura.vertices[f3])
+                    if (len(cube.nvertices) != 0 and self.active_shader):
 
+                        fn1 = face[0][2] - 1
+                        fn3 = face[2][2] - 1
+                        fn4 = face[3][2] - 1
 
+                        vn1 = V3(*cube.nvertices[fn1])
+                        vn3 = V3(*cube.nvertices[fn3])
+                        vn4 = V3(*cube.nvertices[fn4])
 
-                    try:
-                    
+                        self.trianguloarray.append(vn1)
+                        self.trianguloarray.append(vn3)
+                        self.trianguloarray.append(vn4)
+
+                else:
+                    self.trianguloarray.append(v1)
+                    self.trianguloarray.append(v2)
+                    self.trianguloarray.append(v3)
+
+                    if (len(cube.nvertices) != 0 and self.active_shader):
                         fn1 = face[0][2] - 1
                         fn2 = face[1][2] - 1
                         fn3 = face[2][2] - 1
-                        
-                        
-                        vn1 = self.transform_vertex(figura.nvertices[fn1])
-                        vn2 = self.transform_vertex(figura.nvertices[fn2])
-                        vn3 = self.transform_vertex(figura.nvertices[fn3])
+                        fn4 = face[3][2] - 1
 
-                    except:
-                        vn1 = 0
-                        vn2 = 0
-                        vn3 = 0
-                    
-                    try:
-                        ft1 = face[0][1] - 1
-                        ft2 = face[1][1] - 1
-                        ft3 = face[2][1] - 1
-                        vt1 = V3(*figura.tvertices[ft1])
-                        vt2 = V3(*figura.tvertices[ft2])
-                        vt3 = V3(*figura.tvertices[ft3])
-                    except:
-                        vt1 = 0
-                        vt2 = 0
-                        vt3 = 0
-                        
-                    
+                        vn1 = V3(*cube.nvertices[fn1])
+                        vn2 = V3(*cube.nvertices[fn2])
+                        vn3 = V3(*cube.nvertices[fn3])
+                        vn4 = V3(*cube.nvertices[fn4])
+
+                        self.trianguloarray.append(vn1)
+                        self.trianguloarray.append(vn2)
+                        self.trianguloarray.append(vn3)
+
+                    self.trianguloarray.append(v1)
+                    self.trianguloarray.append(v3)
+                    self.trianguloarray.append(v4)
+
+                    if (len(cube.nvertices) != 0 and self.active_shader):
+                        fn1 = face[0][2] - 1
+                        fn2 = face[1][2] - 1
+                        fn3 = face[2][2] - 1
+                        fn4 = face[3][2] - 1
+
+                        vn1 = V3(*cube.nvertices[fn1])
+                        vn2 = V3(*cube.nvertices[fn2])
+                        vn3 = V3(*cube.nvertices[fn3])
+                        vn4 = V3(*cube.nvertices[fn4])
+
+                        self.trianguloarray.append(vn1)
+                        self.trianguloarray.append(vn3)
+                        self.trianguloarray.append(vn4)
+
+            if len(face) == 3:
+                v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
+                v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
+                v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
+
+                # puede no tener
+                if self.texture and len(cube.tvertices) != 0:
+
+                    ft1 = face[0][1] - 1
+                    ft2 = face[1][1] - 1
+                    ft3 = face[2][1] - 1
+
+                    vt1 = V3(*cube.tvertices[ft1])
+                    vt2 = V3(*cube.tvertices[ft2])
+                    vt3 = V3(*cube.tvertices[ft3])
+
+                    #self.material = faceDict['material']
                     self.trianguloarray.append(v1)
                     self.trianguloarray.append(v2)
                     self.trianguloarray.append(v3)
                     self.trianguloarray.append(vt1)
                     self.trianguloarray.append(vt2)
                     self.trianguloarray.append(vt3)
+
+                else:
+                    #self.material = faceDict['material']
+                    self.trianguloarray.append(v1)
+                    self.trianguloarray.append(v2)
+                    self.trianguloarray.append(v3)
+
+                if (len(cube.nvertices) != 0 and self.active_shader):
+                    fn1 = face[0][2] - 1
+                    fn2 = face[1][2] - 1
+                    fn3 = face[2][2] - 1
+
+                    vn1 = V3(*cube.nvertices[fn1])
+                    vn2 = V3(*cube.nvertices[fn2])
+                    vn3 = V3(*cube.nvertices[fn3])
+
                     self.trianguloarray.append(vn1)
                     self.trianguloarray.append(vn2)
                     self.trianguloarray.append(vn3)
 
-            self.draw()
+        self.generar()
 
-
-    #Borrar entrega planeta
-    def manchas(self):
-    
-        desplazamientoY=round(self.height*0.30)
-        desplazamientoX=round(self.width*0.45)
-
-
-        for y in range(100):
-            xx= random.uniform(0.8,1)
-            for x in range(40):
-                eleccion= random.randint(0,2)
-
-                i=((y+desplazamientoY)/self.height)*1.75
-
-                if eleccion == 1:
-                    #self.pcolor=(round(65*i),round(45*i),round(43*i))
-                    self.pcolor=(round(245*i),round(120*i),round(66*i))
-                    self.point(x+round((desplazamientoX-y)*xx),y+(desplazamientoY))
-                    i=((y-10+(desplazamientoY))/self.height)*1.75
-                    self.pcolor=(round(245*i),round(120*i),round(66*i))
-                    self.point(x+round((desplazamientoX+y)*xx),y-10+(desplazamientoY))
-                    i=((y-50+(desplazamientoY))/self.height)*1.75
-                    self.pcolor=(round(245*i),round(120*i),round(66*i))
-                    self.point(x+round((desplazamientoX-y)*xx),y-50+(desplazamientoY))
-
-
-                elif eleccion == 2:
-                    #self.pcolor=(round(97*i),round(58*i),round(50*i))
-                    self.pcolor=(round(234*i),round(105*i),round(56*i))
-                    self.point(x+round((desplazamientoX-y)*xx),y+(desplazamientoY))
-                    i=((y-10+(desplazamientoY))/self.height)*1.75
-                    self.pcolor=(round(234*i),round(105*i),round(56*i))
-                    self.point(x+round((desplazamientoX+y)*xx),y-10+(desplazamientoY))
-                    i=((y-50+(desplazamientoY))/self.height)*1.75
-                    self.pcolor=(round(234*i),round(105*i),round(56*i))
-                    self.point(x+round((desplazamientoX-y)*xx),y-50+(desplazamientoY))
-
-                else:
-                    self.pcolor=(round(250*i),round(124*i),round(73*i))
-                    self.point(x+round((desplazamientoX-y)*xx),y+(desplazamientoY))
-                    i=((y-10+(desplazamientoY))/self.height)*1.75
-                    self.pcolor=(round(250*i),round(124*i),round(73*i))
-                    self.point(x+round((desplazamientoX+y)*xx),y-10+(desplazamientoY))
-                    i=((y-50+(desplazamientoY))/self.height)*1.75
-                    self.pcolor=(round(250*i),round(124*i),round(73*i))
-                    self.point(x+round((desplazamientoX-y)*xx),y-50+(desplazamientoY))
-                
-
-
-
-        desplazamientoY=round(self.height*0.66)
-        desplazamientoX=round(self.width*0.75)
-
-
-        for y in range(90):
-            xx= random.uniform(0.65,0.9)
-            for x in range(50):
-                eleccion= random.randint(0,2)
-
-                if eleccion == 1:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                
-                elif eleccion == 2:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                else:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                self.point(x+round((desplazamientoX-y)*xx),y+(desplazamientoY))
-                self.point(x+round((desplazamientoX-y)*xx),y-50+(desplazamientoY))
-                self.point(x-35+round((desplazamientoX-y)*xx),-y+(desplazamientoY))
-
-
-        desplazamientoY=round(self.height*0.45)
-        desplazamientoX=round(self.width*0.84)
-
-
-        for y in range(35):
-            xx= random.uniform(0.65,0.9)
-            for x in range(47):
-                eleccion= random.randint(0,2)
-
-                if eleccion == 1:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                
-                elif eleccion == 2:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                else:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                self.point(x+round((desplazamientoX-y)*xx),y+(desplazamientoY))
-                self.point(x+round((desplazamientoX-y)*xx),y-15+(desplazamientoY))
-                self.point(x-20+round((desplazamientoX-y)*xx),y-55+(desplazamientoY))
-
-        
-        desplazamientoY=round(self.height*0.5)
-        desplazamientoX=round(self.width*0.32)
-
-
-        for y in range(35):
-            xx= random.uniform(0.65,0.9)
-            for x in range(20):
-                eleccion= random.randint(0,2)
-
-                if eleccion == 1:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                
-                elif eleccion == 2:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                else:
-                    self.pcolor=(round(105),round(49),round(27))
-
-                self.point(x+round((desplazamientoX-y)*xx),y+(desplazamientoY))
-                self.point(x+20+round((desplazamientoX-y)*xx),y+35+(desplazamientoY))
-                self.point(x+20+round((desplazamientoX-y)*xx),y-35+(desplazamientoY))
-
-
-            
-    def draw (self):
-        self.trianguloarray=iter(self.trianguloarray)
+    def generar(self):
+        self.trianguloarray = iter(self.trianguloarray)
         try:
-            while True:
-                self.triangulo()
-        except: StopIteration
-        self.manchas()
+            while(True):
+                self.triangle()
+        except StopIteration:
+            pass
 
-    
-                    
-        
+    def generate_wireframe(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
+        self.loadModelMatrix(translate, scale, rotate)
+        cube = Obj.Obj(name)
+
+        for faceDict in cube.faces:
+
+            face = faceDict['face']
+            if len(face) == 4:
+
+                v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
+                v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
+                v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
+                v4 = self.transform_vertex(cube.vertices[face[3][0] - 1])
+
+                self.linea_nueva(v1, v2)
+                self.linea_nueva(v2, v3)
+                self.linea_nueva(v3, v4)
+                self.linea_nueva(v4, v1)
+
+            if len(face) == 3:
+
+                v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
+                v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
+                v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
+
+                self.linea_nueva(v1, v2)
+                self.linea_nueva(v2, v3)
+                self.linea_nueva(v3, v1)
